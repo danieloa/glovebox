@@ -53,37 +53,25 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ## What it looks like
 
 `kt-triage` against a cluster carrying five deliberate, independent faults
-(`hack/selftest-faults.yaml`, abridged):
+(`hack/selftest-faults.yaml`) — every one of them on a single screen, before
+you have touched anything:
 
-```
-==== NODES (want: all Ready, no pressure taints) ====
-NAME                        STATUS   ROLES           AGE   VERSION
-gb-selftest-control-plane   Ready    control-plane   48s   v1.36.1
+![kt-triage output: five unhealthy pods in one table — an ImagePullBackOff, a CrashLoopBackOff, a Pending pod, and two pods Running but not ready](docs/img/kt-triage-unhealthy.svg)
 
-==== UNHEALTHY PODS, WHOLE CLUSTER (want: none) ====
-NAMESPACE  NAME                       READY  STATUS             RESTARTS      AGE
-shop       catalog-7849d9bb6f-w7vjh   0/1    ImagePullBackOff   0             28s
-shop       checkout-db89dd79-m2cq8    0/1    Error              1 (17s ago)   28s
-shop       reports-64865974fd-gdv56   0/1    Pending            0             28s
-shop       web-675867c654-wz7fj       0/1    Running            0             28s
-shop       web-675867c654-zqp7t       0/1    Running            0             28s
-```
+Two of those five present identically from outside — "the service is
+unreachable" — and `kubectl get svc` cannot tell them apart. `kt-net` can:
 
-...and `kt-net`, on the two faults that both present as "the service is
-unreachable" and that `kubectl get svc` cannot tell apart:
+![kt-net output: payments has ready=0 of total=0 endpoints, web has ready=0 of total=2 — the first warns "NO endpoints at all", the second "endpoints exist but NONE are ready"](docs/img/kt-net-endpoints.svg)
 
-```
-==== ENDPOINTS — ready vs not-ready per service ====
-  payments   ready=0 / total=0
-  web        ready=0 / total=2
-!!  NO endpoints at all: payments
-    the selector matches no pods — compare svc .spec.selector against the pod labels
-!!  endpoints exist but NONE are ready: web
-    the pods are up and failing readiness — kt-why <pod>, and look at the probe
-```
+`payments` has **no endpoints at all** — its selector matches nothing, which is
+a label typo in the Service. `web` has **endpoints that are all not-ready** —
+the pods are up and failing their readiness probe, so Kubernetes is deliberately
+pulling them out of the Service. Same symptom three layers up. Completely
+different fixes.
 
-One is a label typo in a Service. The other is a readiness probe pointed at the
-wrong port. Same symptom three layers up, completely different fixes.
+Both images are generated from a live cluster by `hack/make-screenshots.sh`, not
+retouched by hand — for a tool whose whole output is diagnostic text, a
+screenshot nobody can reproduce would not prove much.
 
 ## Why the shell matters
 
@@ -295,6 +283,8 @@ docs/
 hack/
   pin-versions.sh        freeze tool versions before you need them
   selftest-faults.yaml   five deliberate faults, for testing the toolkit
+  make-screenshots.sh    regenerate the README images from a live cluster
+  ansi2svg.py            ANSI terminal output -> SVG
 ```
 
 Everything is commented for the reader who arrives in six months and asks "why
