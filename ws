@@ -81,7 +81,7 @@ docker_run() {
 }
 
 # resolve_bundle — first non-flag argument, or the current directory.
-# Defaulting to CWD means `cd ~/Desktop/some-assessment && ws shell` just works,
+# Defaulting to CWD means `cd ~/some-assessment && ws shell` just works,
 # which is how you will actually use this.
 resolve_bundle() {
   local b="${1:-$PWD}"
@@ -107,7 +107,7 @@ usage() {
 
   A bundle is the directory the assessment sent you (kubeconfig, ssh key, task
   description). It is mounted READ-ONLY. Defaults to the current directory, so
-  `cd ~/Desktop/assessment && ws shell` is the normal way to use this.
+  `cd ~/some-assessment && ws shell` is the normal way to use this.
 
   ANTHROPIC_API_KEY is read from your environment and passed at run time. It is
   never written to an image layer.
@@ -121,7 +121,7 @@ case "$cmd" in
   build)
     c_info "building $IMAGE (this pulls ~500MB of tooling the first time)"
     docker build "$@" -t "$IMAGE" "$HERE"
-    c_ok "built $IMAGE — try: ./ws shell ~/Desktop/some-assessment"
+    c_ok "built $IMAGE — try: ./ws shell ~/some-assessment"
     ;;
 
   shell)

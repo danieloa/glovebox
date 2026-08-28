@@ -11,7 +11,7 @@
 #   2. It is a real shell, not a busybox. Tab completion, k9s, stern, aws — the
 #      things whose absence turns a 20-minute exercise into a 40-minute one.
 #
-# Build:  ./ws build          Enter:  ./ws shell ~/Desktop/some-assessment
+# Build:  ./ws build          Enter:  ./ws shell ~/some-assessment
 # ==============================================================================
 
 FROM debian:12-slim
