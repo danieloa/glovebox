@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
-# workstation — a disposable, agent-capable SRE troubleshooting container.
+# glovebox — a disposable, agent-capable SRE troubleshooting container.
 #
 # Built for take-home assessments and live interview exercises where you are
 # handed credentials to someone else's cluster. Two properties matter:
@@ -11,7 +11,7 @@
 #   2. It is a real shell, not a busybox. Tab completion, k9s, stern, aws — the
 #      things whose absence turns a 20-minute exercise into a 40-minute one.
 #
-# Build:  ./ws build          Enter:  ./ws shell ~/some-assessment
+# Build:  ./gb build          Enter:  ./gb shell ~/some-assessment
 # ==============================================================================
 
 FROM debian:12-slim
@@ -68,7 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       # node access for kubelet-level faults
       openssh-client rsync \
       # quality of life: ripgrep and fzf are what make the shell feel like a
-      # workstation instead of a rescue disk
+      # glovebox instead of a rescue disk
       ripgrep fzf tree bat \
       # python for ad-hoc math and one-off API calls
       python3 python3-venv \
@@ -86,33 +86,33 @@ RUN chmod +x /tmp/install-tools.sh && /tmp/install-tools.sh && rm -f /tmp/instal
 # Layer 3: the guard shims.
 #
 # `kubectl` and `aws` on PATH are wrappers that refuse mutating verbs unless
-# WS_MODE=rw. They are owned by root and mode 0755, so the unprivileged runtime
+# GB_MODE=rw. They are owned by root and mode 0755, so the unprivileged runtime
 # user can execute but not edit them.
 #
 # Read docs/SECURITY.md before you trust this: it is accident-prevention and
 # defense-in-depth, NOT a capability boundary. Anything holding the kubeconfig
-# can talk to the API server directly. The real boundary is RBAC — see `ws scope`.
+# can talk to the API server directly. The real boundary is RBAC — see `gb scope`.
 # ------------------------------------------------------------------------------
-COPY image/guard-kubectl.sh /opt/ws/libexec/guard-kubectl
-COPY image/guard-aws.sh     /opt/ws/libexec/guard-aws
+COPY image/guard-kubectl.sh /opt/glovebox/libexec/guard-kubectl
+COPY image/guard-aws.sh     /opt/glovebox/libexec/guard-aws
 RUN set -eux; \
-    mkdir -p /opt/ws/bin.real; \
-    mv /usr/local/bin/kubectl /opt/ws/bin.real/kubectl; \
-    mv /usr/local/bin/aws     /opt/ws/bin.real/aws; \
-    ln -s /opt/ws/libexec/guard-kubectl /usr/local/bin/kubectl; \
-    ln -s /opt/ws/libexec/guard-aws     /usr/local/bin/aws; \
-    chown root:root /opt/ws/libexec/guard-kubectl /opt/ws/libexec/guard-aws; \
-    chmod 0755 /opt/ws/libexec/guard-kubectl /opt/ws/libexec/guard-aws
+    mkdir -p /opt/glovebox/bin.real; \
+    mv /usr/local/bin/kubectl /opt/glovebox/bin.real/kubectl; \
+    mv /usr/local/bin/aws     /opt/glovebox/bin.real/aws; \
+    ln -s /opt/glovebox/libexec/guard-kubectl /usr/local/bin/kubectl; \
+    ln -s /opt/glovebox/libexec/guard-aws     /usr/local/bin/aws; \
+    chown root:root /opt/glovebox/libexec/guard-kubectl /opt/glovebox/libexec/guard-aws; \
+    chmod 0755 /opt/glovebox/libexec/guard-kubectl /opt/glovebox/libexec/guard-aws
 
 # ------------------------------------------------------------------------------
 # Layer 4: toolkit, agent config, shell environment.
 # ------------------------------------------------------------------------------
-COPY toolkit/       /opt/ws/toolkit/
-COPY claude/        /opt/ws/claude/
-COPY image/shellrc.sh   /opt/ws/shellrc.sh
-COPY image/entrypoint.sh /opt/ws/entrypoint.sh
-RUN chmod -R a+rX /opt/ws \
-    && chmod 0755 /opt/ws/entrypoint.sh /opt/ws/claude/run-agent.sh
+COPY toolkit/       /opt/glovebox/toolkit/
+COPY claude/        /opt/glovebox/claude/
+COPY image/shellrc.sh   /opt/glovebox/shellrc.sh
+COPY image/entrypoint.sh /opt/glovebox/entrypoint.sh
+RUN chmod -R a+rX /opt/glovebox \
+    && chmod 0755 /opt/glovebox/entrypoint.sh /opt/glovebox/claude/run-agent.sh
 
 # ------------------------------------------------------------------------------
 # Layer 5: the runtime user.
@@ -123,9 +123,9 @@ RUN chmod -R a+rX /opt/ws \
 # ------------------------------------------------------------------------------
 RUN useradd -m -s /bin/bash -u 1000 sre \
     && mkdir -p /work /home/sre/.kube /home/sre/.aws /home/sre/.claude \
-    && ln -s /opt/ws/claude/skills /home/sre/.claude/skills \
+    && ln -s /opt/glovebox/claude/skills /home/sre/.claude/skills \
     && chown -R sre:sre /work /home/sre \
-    && printf '%s\n' '[ -f /opt/ws/shellrc.sh ] && source /opt/ws/shellrc.sh' \
+    && printf '%s\n' '[ -f /opt/glovebox/shellrc.sh ] && source /opt/glovebox/shellrc.sh' \
        | tee -a /home/sre/.bashrc >> /home/sre/.zshrc
 
 USER sre
@@ -133,7 +133,7 @@ WORKDIR /work
 ENV HOME=/home/sre \
     PATH=/home/sre/.local/bin:/home/sre/.krew/bin:/usr/local/bin:/usr/bin:/bin \
     KUBECONFIG=/work/kubeconfig \
-    WS_MODE=ro
+    GB_MODE=ro
 
 # ------------------------------------------------------------------------------
 # Layer 6: Claude Code.
@@ -141,10 +141,10 @@ ENV HOME=/home/sre \
 # Installed last and as the unprivileged user, because the native installer is
 # per-user (it lands in ~/.local/bin) and because this is the layer most likely
 # to be rebuilt. No credentials here: ANTHROPIC_API_KEY is passed at run time by
-# ./ws, never stored in an image layer.
+# ./gb, never stored in an image layer.
 # ------------------------------------------------------------------------------
 RUN curl -fsSL https://claude.ai/install.sh | bash \
     && /home/sre/.local/bin/claude --version
 
-ENTRYPOINT ["/opt/ws/entrypoint.sh"]
+ENTRYPOINT ["/opt/glovebox/entrypoint.sh"]
 CMD ["shell"]

@@ -16,8 +16,8 @@
 # ==============================================================================
 set -euo pipefail
 
-REAL=/opt/ws/bin.real/aws
-MODE="${WS_MODE:-ro}"
+REAL=/opt/glovebox/bin.real/aws
+MODE="${GB_MODE:-ro}"
 
 # ---- policy ------------------------------------------------------------------
 # Prefixes on the operation name that indicate a read. `aws ec2 describe-
@@ -73,20 +73,20 @@ if [ "$service" = eks ] && [ "$operation" = update-kubeconfig ]; then allowed=1;
 [ "$MODE" = rw ] && allowed=1
 
 # ---- audit -------------------------------------------------------------------
-if [ -n "${WS_AUDIT_LOG:-}" ]; then
+if [ -n "${GB_AUDIT_LOG:-}" ]; then
   printf '%s  [%s] %s aws %s\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$MODE" \
-    "$([ "$allowed" = 1 ] && echo RUN || echo DENY)" "$*" >> "$WS_AUDIT_LOG" 2>/dev/null || true
+    "$([ "$allowed" = 1 ] && echo RUN || echo DENY)" "$*" >> "$GB_AUDIT_LOG" 2>/dev/null || true
 fi
 
 if [ "$allowed" = 0 ]; then
   cat >&2 <<MSG
-workstation: refusing 'aws $service $operation' — WS_MODE=$MODE is read-only.
+glovebox: refusing 'aws $service $operation' — GB_MODE=$MODE is read-only.
 
   Allowed shapes: describe-*, get-*, list-*, scan, query, s3 ls,
                   sts get-caller-identity, eks update-kubeconfig.
 
-  To override for one command:  WS_MODE=rw aws $service $operation ...
+  To override for one command:  GB_MODE=rw aws $service $operation ...
   Better: attach a ReadOnlyAccess role instead of trusting this wrapper.
 MSG
   exit 77

@@ -67,7 +67,7 @@ stage_bundle() {
     [ -f "$f" ] || continue
     if head -c 40 "$f" 2>/dev/null | grep -q 'BEGIN .*PRIVATE KEY'; then
       chmod 600 "$f"
-      [ -z "${WS_SSH_KEY:-}" ] && export WS_SSH_KEY="$f"
+      [ -z "${GB_SSH_KEY:-}" ] && export GB_SSH_KEY="$f"
     fi
   done
 
@@ -89,9 +89,9 @@ stage_bundle() {
 # ------------------------------------------------------------------------------
 banner() {
   hr "┌──────────────────────────────────────────────────────────────┐"
-  hr "│  workstation — disposable SRE troubleshooting container      │"
+  hr "│  glovebox — disposable SRE troubleshooting container         │"
   hr "└──────────────────────────────────────────────────────────────┘"
-  local mode="${WS_MODE:-ro}" desc
+  local mode="${GB_MODE:-ro}" desc
   case "$mode" in
     ro)    desc="read-only (mutating kubectl/aws verbs are refused)" ;;
     probe) desc="read + exec/port-forward (no API object is modified)" ;;
@@ -111,9 +111,9 @@ banner() {
   fi
 
   [ -n "${ANTHROPIC_API_KEY:-}" ] \
-    && printf '  agent     : available — try `ws-diagnose` or `claude`\n' \
+    && printf '  agent     : available — try `gb-diagnose` or `claude`\n' \
     || printf '  agent     : no ANTHROPIC_API_KEY passed (tools still work)\n'
-  [ -n "${WS_AUDIT_LOG:-}" ] && printf '  transcript: %s\n' "$WS_AUDIT_LOG"
+  [ -n "${GB_AUDIT_LOG:-}" ] && printf '  transcript: %s\n' "$GB_AUDIT_LOG"
   echo
   printf '  start with: \033[1mkt-triage\033[0m   (whole-stack overview)   |   \033[1mkt-help\033[0m\n'
   echo
@@ -124,18 +124,45 @@ stage_bundle
 case "${1:-shell}" in
   shell)
     banner
-    # --rcfile is used instead of relying on ~/.bashrc so that the exported
-    # KUBECONFIG / WS_SSH_KEY computed above survive into the interactive shell:
-    # bash would otherwise re-read .bashrc in a fresh environment.
-    exec bash --rcfile <(
-      cat /home/sre/.bashrc
-      echo "export KUBECONFIG='${KUBECONFIG:-}' WS_SSH_KEY='${WS_SSH_KEY:-}'"
+    # An rc file is written rather than relying on ~/.bashrc, so that the
+    # KUBECONFIG / GB_SSH_KEY / credentials paths computed by stage_bundle
+    # survive into the shell — bash would otherwise re-read .bashrc in a fresh
+    # environment and lose them.
+    #
+    # It goes to a real file rather than a process substitution because the two
+    # cases below need it twice, and because a non-interactive bash cannot read
+    # an rc file at all:
+    #
+    #   interactive (a human)   --rcfile. Only interactive shells read one.
+    #   piped (a script, a      BASH_ENV. This is the ONLY hook a non-
+    #   self-test, CI)          interactive bash honours, and without it
+    #                           `echo kt-triage | gb shell` silently runs
+    #                           without the toolkit and reports command not
+    #                           found — which looks like a broken image.
+    #
+    # The rc sources /opt/glovebox/shellrc.sh DIRECTLY rather than replaying
+    # ~/.bashrc. Debian's stock skeleton .bashrc opens with
+    #     case $- in *i*) ;; *) return;; esac
+    # so replaying it in a non-interactive shell returns before reaching
+    # anything appended to it, and the toolkit silently never loads. Sourcing
+    # the one file we actually care about sidesteps that entirely.
+    #
+    # Exports come first so that shellrc and the kt-* defaults see them.
+    RC=/work/.gb_rc
+    {
+      echo "export KUBECONFIG='${KUBECONFIG:-}' GB_SSH_KEY='${GB_SSH_KEY:-}'"
       echo "export AWS_SHARED_CREDENTIALS_FILE='${AWS_SHARED_CREDENTIALS_FILE:-}'"
-    )
+      echo "source /opt/glovebox/shellrc.sh"
+    } > "$RC"
+    if [ -t 0 ]; then
+      exec bash --rcfile "$RC"
+    else
+      exec env BASH_ENV="$RC" bash
+    fi
     ;;
   agent)
     shift
-    exec /opt/ws/claude/run-agent.sh "$@"
+    exec /opt/glovebox/claude/run-agent.sh "$@"
     ;;
   exec)
     shift

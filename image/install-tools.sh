@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
-# install-tools.sh — fetch the workstation's binary toolchain.
+# install-tools.sh — fetch the glovebox's binary toolchain.
 #
 # Runs once, as root, at image build time. Lives in its own file rather than a
 # 200-line RUN layer so it stays reviewable and so version drift is fixed in one

@@ -1,4 +1,4 @@
-# workstation
+# glovebox
 
 A disposable, agent-capable container for troubleshooting a Kubernetes cluster
 you did not build.
@@ -25,12 +25,12 @@ There are two ways to use it, and both matter:
 ## 60 seconds
 
 ```bash
-git clone https://github.com/danieloa/workstation.git
-cd workstation
-./ws build                       # ~2GB, a few minutes, once
+git clone https://github.com/danieloa/glovebox.git
+cd glovebox
+./gb build                       # ~2GB, a few minutes, once
 
 cd ~/some-assessment             # the directory holding their kubeconfig
-~/workstation/ws shell           # you troubleshoot
+~/glovebox/gb shell           # you troubleshoot
 ```
 
 Inside:
@@ -46,8 +46,8 @@ With an API key exported, the agent is available too:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-~/workstation/ws agent "the checkout service is down — what is wrong?"
-~/workstation/ws agent --fix "fix the readiness probe on web"   # asks first
+~/glovebox/gb agent "the checkout service is down — what is wrong?"
+~/glovebox/gb agent --fix "fix the readiness probe on web"   # asks first
 ```
 
 ## What it looks like
@@ -58,7 +58,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ```
 ==== NODES (want: all Ready, no pressure taints) ====
 NAME                        STATUS   ROLES           AGE   VERSION
-ws-selftest-control-plane   Ready    control-plane   48s   v1.36.1
+gb-selftest-control-plane   Ready    control-plane   48s   v1.36.1
 
 ==== UNHEALTHY PODS, WHOLE CLUSTER (want: none) ====
 NAMESPACE  NAME                       READY  STATUS             RESTARTS      AGE
@@ -162,7 +162,7 @@ against. None of them write to the cluster.
 
 ## The agent
 
-`ws agent "<question>"` runs Claude Code inside the container with:
+`gb agent "<question>"` runs Claude Code inside the container with:
 
 - **the same guard rails you have.** The `kubectl` and `aws` on its `PATH`
   refuse mutating verbs unless the mode allows them. A refusal is a policy
@@ -173,7 +173,7 @@ against. None of them write to the cluster.
   endpoints exist but are not ready), and the requirement to separate what was
   observed from what was inferred.
 - **a transcript.** Every command it ran, allowed or refused, in
-  `/work/ws-audit-*.log`.
+  `/work/gb-audit-*.log`.
 
 It is told to gather all the evidence before concluding anything, because these
 environments usually contain several independent faults, and a fix applied
@@ -188,9 +188,9 @@ shifting underneath it.
 
 | Mode | `kubectl` can | Used by |
 |---|---|---|
-| `ro` | read | `ws shell --ro`, `ws agent --ro` |
+| `ro` | read | `gb shell --ro`, `gb agent --ro` |
 | `probe` | + `exec`, `port-forward`, `debug` — no API object is modified | **default** |
-| `rw` | everything | `ws shell --rw`, `ws agent --fix` (confirms first) |
+| `rw` | everything | `gb shell --rw`, `gb agent --fix` (confirms first) |
 
 `probe` is the default because most real diagnosis needs to curl a service from
 inside a pod, and none of that changes anything.
@@ -208,7 +208,7 @@ CLI-layer control can change that. For a boundary the server enforces, scope the
 credential:
 
 ```bash
-./ws scope        # ServiceAccount + 'view' ClusterRole -> kubeconfig.readonly
+./gb scope        # ServiceAccount + 'view' ClusterRole -> kubeconfig.readonly
 ```
 
 Now read-only is a fact about the cluster rather than a promise about the
@@ -218,17 +218,17 @@ including what it deliberately does not cover.
 ## Usage
 
 ```
-./ws build [--no-cache]         build the image
-./ws shell [dir] [--rw|--ro]    interactive shell        (default: probe)
-./ws agent [--fix] "<q>"        one-shot agent run       (default: probe)
-./ws agent                      interactive Claude in the container
-./ws scope [sa-name] [ns]       mint a read-only kubeconfig via RBAC
-./ws doctor                     check the host is ready
-./ws nuke                       remove the image
+./gb build [--no-cache]         build the image
+./gb shell [dir] [--rw|--ro]    interactive shell        (default: probe)
+./gb agent [--fix] "<q>"        one-shot agent run       (default: probe)
+./gb agent                      interactive Claude in the container
+./gb scope [sa-name] [ns]       mint a read-only kubeconfig via RBAC
+./gb doctor                     check the host is ready
+./gb nuke                       remove the image
 ```
 
 The bundle directory is mounted **read-only** and defaults to `$PWD`, so
-`cd ~/some-assessment && ws shell` is the normal way to use this. The container
+`cd ~/some-assessment && gb shell` is the normal way to use this. The container
 copies what it needs into a writable `/work`: `kubectl` writes to the
 kubeconfig, `ssh` refuses a key it cannot `chmod`, and you never modify the
 artifacts you were sent.
@@ -236,8 +236,8 @@ artifacts you were sent.
 Reaching a cluster the defaults cannot see:
 
 ```bash
-WS_DOCKER_ARGS="--network kind" ./ws shell    # kind / k3d internal addresses
-WS_DOCKER_ARGS="--dns 10.0.0.1" ./ws shell    # split-horizon resolver
+GB_DOCKER_ARGS="--network kind" ./gb shell    # kind / k3d internal addresses
+GB_DOCKER_ARGS="--dns 10.0.0.1" ./gb shell    # split-horizon resolver
 ```
 
 ## Try it on a broken cluster
@@ -248,16 +248,16 @@ clusters. The fixture plants five independent faults: a `CrashLoopBackOff`, an
 Service selector typo.
 
 ```bash
-kind create cluster --name ws-selftest
+kind create cluster --name gb-selftest
 kubectl apply -f hack/selftest-faults.yaml
 
-mkdir -p /tmp/ws-bundle
-kind get kubeconfig --name ws-selftest --internal > /tmp/ws-bundle/kubeconfig
+mkdir -p /tmp/gb-bundle
+kind get kubeconfig --name gb-selftest --internal > /tmp/gb-bundle/kubeconfig
 
-WS_DOCKER_ARGS="--network kind" ./ws shell /tmp/ws-bundle
+GB_DOCKER_ARGS="--network kind" ./gb shell /tmp/gb-bundle
 # then: kt-triage   — all five should be on one screen
 
-kind delete cluster --name ws-selftest
+kind delete cluster --name gb-selftest
 ```
 
 ## Requirements
@@ -265,16 +265,16 @@ kind delete cluster --name ws-selftest
 - Docker (or anything that speaks the same CLI). Built and tested on
   `linux/amd64`; `linux/arm64` is handled throughout and every upstream asset
   resolves for it, but that build path has not been exercised end to end.
-- `kubectl` on the host only for `ws scope`; everything else runs in the
+- `kubectl` on the host only for `gb scope`; everything else runs in the
   container.
-- `ANTHROPIC_API_KEY` only for `ws agent`. The toolkit works fully without one.
+- `ANTHROPIC_API_KEY` only for `gb agent`. The toolkit works fully without one.
   The key is passed in at run time and never written to an image layer.
 
 ## Layout
 
 ```
 Dockerfile               six layers, ordered so editing a script does not re-download 400MB
-ws                       the host-side driver — every docker flag, and why it is there
+gb                       the host-side driver — every docker flag, and why it is there
 image/
   install-tools.sh       the binary toolchain: arch mapping, version resolution
   guard-kubectl.sh       the verb allow-list

@@ -1,5 +1,5 @@
 {
-  "$comment": "Probe profile: adds exec / port-forward / debug so the agent can test connectivity from inside the cluster. Still cannot modify an API object. This is the default for `ws agent`, because most real diagnosis needs to curl a service from a pod.",
+  "$comment": "Probe profile: adds exec / port-forward / debug so the agent can test connectivity from inside the cluster. Still cannot modify an API object. This is the default for `gb agent`, because most real diagnosis needs to curl a service from a pod.",
   "permissions": {
     "deny": [
       "Bash(kubectl apply:*)",
@@ -21,7 +21,7 @@
       "Bash(helm install:*)",
       "Bash(helm upgrade:*)",
       "Bash(helm uninstall:*)",
-      "Bash(/opt/ws/bin.real/:*)",
+      "Bash(/opt/glovebox/bin.real/:*)",
       "Read(//work/id_rsa)",
       "Read(//work/credentials)"
     ]

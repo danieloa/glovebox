@@ -1,4 +1,4 @@
-# You are running inside `workstation`, on someone else's cluster.
+# You are running inside `glovebox`, on someone else's cluster.
 
 This container was handed a kubeconfig for a Kubernetes cluster that almost
 certainly belongs to an interviewer, a customer, or a colleague. Behave
@@ -6,10 +6,10 @@ accordingly.
 
 ## Mode
 
-`$WS_MODE` tells you what you are allowed to do. The `kubectl` and `aws` on your
+`$GB_MODE` tells you what you are allowed to do. The `kubectl` and `aws` on your
 PATH are wrappers that enforce it — a refused command exits 77 with an
 explanation, and that is a policy decision, not a bug to work around. Do not try
-to reach the real binaries under `/opt/ws/bin.real`, and do not talk to the API
+to reach the real binaries under `/opt/glovebox/bin.real`, and do not talk to the API
 server over raw HTTP to get around a refusal. If you genuinely need write access
 to make progress, stop and say so.
 
@@ -19,7 +19,7 @@ to make progress, stop and say so.
 
 ## Method
 
-Use the `kt-*` and `aw-*` verbs in `/opt/ws/toolkit/` before reaching for raw
+Use the `kt-*` and `aw-*` verbs in `/opt/glovebox/toolkit/` before reaching for raw
 kubectl. They exist because each one bundles the several commands that actually
 answer a question, and because using them makes your reasoning legible to the
 person reading over your shoulder. `kt-help` lists them.

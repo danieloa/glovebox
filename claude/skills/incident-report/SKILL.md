@@ -58,7 +58,7 @@ memory leak" is an inference from one data point, and should be labelled as one.
 checking whether the quoted line actually says what you claim.
 
 **Show commands as run, with their output.** The audit transcript
-(`/work/ws-audit-*.log`) is the record of everything the toolkit executed; it is
+(`/work/gb-audit-*.log`) is the record of everything the toolkit executed; it is
 a legitimate appendix and it makes the report verifiable.
 
 **State uncertainty where it exists.** "I could not determine X because Y; here

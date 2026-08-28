@@ -3,7 +3,7 @@
 # ==============================================================================
 # run-agent.sh — hand the cluster to Claude, under a mode.
 #
-# Invoked as `ws agent "..."` from the host, or `ws-diagnose "..."` from inside
+# Invoked as `gb agent "..."` from the host, or `gb-diagnose "..."` from inside
 # the container's shell. With no prompt it opens an interactive Claude session
 # with the same guards in place.
 #
@@ -15,15 +15,15 @@
 # ==============================================================================
 set -euo pipefail
 
-MODE="${WS_MODE:-probe}"
-SETTINGS="/opt/ws/claude/settings.${MODE}.json"
-[ -f "$SETTINGS" ] || SETTINGS="/opt/ws/claude/settings.ro.json"
+MODE="${GB_MODE:-probe}"
+SETTINGS="/opt/glovebox/claude/settings.${MODE}.json"
+[ -f "$SETTINGS" ] || SETTINGS="/opt/glovebox/claude/settings.ro.json"
 
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
   cat >&2 <<'MSG'
-workstation: no ANTHROPIC_API_KEY in the environment.
+glovebox: no ANTHROPIC_API_KEY in the environment.
 
-  export ANTHROPIC_API_KEY=sk-ant-...      on the HOST, then re-run ./ws
+  export ANTHROPIC_API_KEY=sk-ant-...      on the HOST, then re-run ./gb
   (the key is passed through at run time and is never written to an image layer)
 MSG
   exit 1
@@ -33,27 +33,27 @@ fi
 # memory is worse than one reconstructed from a log of every command that ran,
 # and in an interview the log is the thing that proves the agent did what you
 # said it did.
-export WS_AUDIT_LOG="${WS_AUDIT_LOG:-/work/ws-audit-$(date -u +%Y%m%dT%H%M%SZ).log}"
-touch "$WS_AUDIT_LOG" 2>/dev/null || true
+export GB_AUDIT_LOG="${GB_AUDIT_LOG:-/work/gb-audit-$(date -u +%Y%m%dT%H%M%SZ).log}"
+touch "$GB_AUDIT_LOG" 2>/dev/null || true
 
 # Give the model the operating instructions plus the live facts it would
 # otherwise burn three tool calls discovering.
-CONTEXT="$(cat /opt/ws/claude/AGENT.md)
+CONTEXT="$(cat /opt/glovebox/claude/AGENT.md)
 
 ## This session
-- WS_MODE=$MODE
+- GB_MODE=$MODE
 - kubeconfig: ${KUBECONFIG:-none}
 - context: $(kubectl config current-context 2>/dev/null || echo unknown)
 - api server: $(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || echo unknown)
-- transcript: $WS_AUDIT_LOG
-- toolkit: /opt/ws/toolkit/*.sh are already sourced in your shell; run \`kt-help\`.
+- transcript: $GB_AUDIT_LOG
+- toolkit: /opt/glovebox/toolkit/*.sh are already sourced in your shell; run \`kt-help\`.
 "
 
 if [ "$MODE" = rw ]; then
   printf '\033[1;31m'
   cat <<'MSG'
   ┌────────────────────────────────────────────────────────────┐
-  │  WS_MODE=rw — the agent may MODIFY this cluster.           │
+  │  GB_MODE=rw — the agent may MODIFY this cluster.           │
   └────────────────────────────────────────────────────────────┘
 MSG
   printf '\033[0m'

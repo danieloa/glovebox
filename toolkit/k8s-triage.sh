@@ -36,8 +36,8 @@
 # original version of this file hardcoded a namespace and three node IPs; that
 # worked for exactly one assessment and was useless for the next one.
 : "${KT_NS:=}"                       # target namespace; kt-ns auto-detects
-: "${KT_SSH_USER:=${WS_SSH_USER:-root}}"
-: "${KT_SSH_KEY:=${WS_SSH_KEY:-}}"
+: "${KT_SSH_USER:=${GB_SSH_USER:-root}}"
+: "${KT_SSH_KEY:=${GB_SSH_KEY:-}}"
 : "${KT_TIMEOUT:=15s}"               # never let a wedged API server hang triage
 
 # ==============================================================================
@@ -81,14 +81,19 @@ _kt_ns() {
 # The awk covers both halves of "unhealthy": a bad phase (CrashLoopBackOff,
 # Pending, ImagePullBackOff) and a Running pod whose ready count is short of its
 # container count (2/3), which prints as "Running" and is easy to scroll past.
-_kt_pods_bad() {
-  _kt_k get pods -A --no-headers 2>/dev/null | awk '
+# _kt_bad_filter — the "is this pod unhealthy" rule, reading `kubectl get pods`
+# rows on stdin. Split out from _kt_pods_bad so a caller that already holds the
+# output can filter it without paying for a second API call.
+_kt_bad_filter() {
+  awk '
     {
       split($3, r, "/")
       if ($4 != "Running" && $4 != "Completed" && $4 != "Succeeded") print
       else if (r[1] != r[2]) print
     }'
 }
+
+_kt_pods_bad() { _kt_k get pods -A --no-headers 2>/dev/null | _kt_bad_filter; }
 
 # ==============================================================================
 # ORIENTATION
@@ -152,16 +157,22 @@ kt-triage() {
   _kt_k get nodes -o wide 2>&1
 
   _kt_hr "UNHEALTHY PODS, WHOLE CLUSTER (want: none)"
-  local bad; bad="$(_kt_pods_bad)"
+  # ONE `get pods` call, with its header, filtered locally. Fetching the header
+  # separately from the rows looks equivalent and is not: kubectl sizes its
+  # columns to the rows it is printing, so two calls produce two different
+  # widths and the header does not line up with the data underneath it.
+  #
+  # Deliberately not piped through `column -t` either — awk preserves kubectl's
+  # spacing exactly, and re-tabulating would split fields that legitimately
+  # contain spaces ("5 (99s ago)") across two columns.
+  local all bad
+  all="$(_kt_k get pods -A 2>/dev/null)"
+  bad="$(echo "$all" | tail -n +2 | _kt_bad_filter)"
   if [ -z "$bad" ]; then
     _kt_note "none — every pod is Running/Completed with all containers ready"
   else
-    # kubectl's own header is reused rather than hand-written, so the columns
-    # line up whatever kubectl decides the widths should be. Deliberately NOT
-    # piped through `column -t`: awk preserves kubectl's original spacing, and
-    # re-tabulating splits fields that legitimately contain spaces
-    # ("6 (3m38s ago)") across two columns.
-    { _kt_k get pods -A 2>/dev/null | head -1; echo "$bad"; }
+    echo "$all" | head -1
+    echo "$bad"
   fi
 
   _kt_hr "WORKLOADS in ns/$ns"
@@ -583,7 +594,7 @@ kt-dns() {
   #          hence the fallback chain below.
   #   ro     neither is permitted. Say so rather than failing obscurely.
   _kt_hr "RESOLUTION TEST from inside the cluster: $name"
-  local mode="${WS_MODE:-ro}"
+  local mode="${GB_MODE:-ro}"
 
   if [ "$mode" = rw ]; then
     _kt_k run "kt-dnstest-$$" --rm -i --restart=Never --image=busybox:1.36 \
@@ -592,7 +603,7 @@ kt-dns() {
   fi
 
   if [ "$mode" = ro ]; then
-    _kt_note "a resolution test needs exec or a throwaway pod — rerun with 'ws shell' (probe) or --rw"
+    _kt_note "a resolution test needs exec or a throwaway pod — rerun with 'gb shell' (probe) or --rw"
     _kt_note "everything above still tells you whether CoreDNS itself is healthy"
     return 0
   fi
@@ -861,7 +872,7 @@ kt-events() {
 # kt-snapshot [dir] — dump the cluster's state to files.
 #
 # Two uses, both of which have paid for the function on their own:
-#   * it is the evidence pack for the write-up. `ws shell` is --rm, and a
+#   * it is the evidence pack for the write-up. `gb shell` is --rm, and a
 #     scrollback buffer is not a deliverable.
 #   * it is what you feed the agent. Reading 30 files off disk is faster and far
 #     cheaper than 30 round trips to an API server, and it means the agent
@@ -913,7 +924,7 @@ kt-snapshot() {
   echo
   du -sh "$dir" 2>/dev/null
   ls -1 "$dir"
-  _kt_note "feed it to the agent:  ws agent \"analyse the snapshot in $dir\""
+  _kt_note "feed it to the agent:  gb agent \"analyse the snapshot in $dir\""
 }
 
 # ------------------------------------------------------------------------------
@@ -973,9 +984,9 @@ kt-help() {
     kt-diff <file.yaml>       server-side dry-run: what a fix would change
 
   AGENT
-    ws-diagnose "<question>"  hand the cluster to Claude, read-only
+    gb-diagnose "<question>"  hand the cluster to Claude, read-only
 
-  Nothing above writes to the cluster. Mode is WS_MODE=ro|probe|rw.
+  Nothing above writes to the cluster. Mode is GB_MODE=ro|probe|rw.
 
 HELP
 }

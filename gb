@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
-# ws — the host-side driver for the workstation container.
+# gb — the host-side driver for the glovebox container.
 #
-#   ./ws build [--no-cache]              build the image
-#   ./ws shell [bundle-dir] [--rw|--ro]  interactive shell (default: probe mode)
-#   ./ws agent [--fix] "<question>"      one-shot agent run (default: probe)
-#   ./ws agent                           interactive Claude inside the container
-#   ./ws scope <sa-name>                 mint a read-only kubeconfig (see below)
-#   ./ws doctor                          check the host is ready
-#   ./ws nuke                            remove the image and its volumes
+#   ./gb build [--no-cache]              build the image
+#   ./gb shell [bundle-dir] [--rw|--ro]  interactive shell (default: probe mode)
+#   ./gb agent [--fix] "<question>"      one-shot agent run (default: probe)
+#   ./gb agent                           interactive Claude inside the container
+#   ./gb scope <sa-name>                 mint a read-only kubeconfig (see below)
+#   ./gb doctor                          check the host is ready
+#   ./gb nuke                            remove the image and its volumes
 #
 # A "bundle" is whatever the assessment sent you: a directory containing a
 # kubeconfig, maybe an SSH key, maybe a task description and some manifests. It
 # is mounted READ-ONLY; the container copies what it needs to a writable /work.
-# Point at it explicitly or run ./ws from inside it.
+# Point at it explicitly or run ./gb from inside it.
 # ==============================================================================
 set -euo pipefail
 
-IMAGE="${WS_IMAGE:-workstation}"
+IMAGE="${GB_IMAGE:-glovebox}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 c_red()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
@@ -50,6 +50,11 @@ die()    { c_red "!! $*"; exit 1; }
 # ------------------------------------------------------------------------------
 docker_run() {
   local bundle="$1" mode="$2"; shift 2
+  # NOTE the ${envs[@]+"${envs[@]}"} form at the docker invocation below rather
+  # than a plain "${envs[@]}". This script runs on the host, macOS still ships
+  # bash 3.2, and there an empty array expanded as "${arr[@]}" under `set -u` is
+  # an unbound-variable error. Everything inside the container is bash 5 and
+  # would not care; the host is the constraint.
   local envs=()
   [ -n "${ANTHROPIC_API_KEY:-}" ] && envs+=(-e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
   [ -n "${AWS_PROFILE:-}" ]       && envs+=(-e "AWS_PROFILE=$AWS_PROFILE")
@@ -60,28 +65,34 @@ docker_run() {
       -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}"
       -e "AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}")
 
-  # WS_DOCKER_ARGS is the escape hatch for the cases the defaults cannot cover:
+  # GB_DOCKER_ARGS is the escape hatch for the cases the defaults cannot cover:
   #   --network kind        reach a local kind/k3d cluster's internal address
   #   --dns 10.0.0.1        an assessment behind a split-horizon resolver
   #   -v $PWD/notes:/notes  keep the write-up outside the disposable container
   # Deliberately last so it can override anything above it.
   # shellcheck disable=SC2086
-  docker run --rm -it \
-    --hostname workstation \
+  # -t only when stdout is actually a terminal. With it unconditionally, a
+  # piped or redirected invocation dies on "cannot attach stdin to a TTY-enabled
+  # container", which makes the shell impossible to drive from a script or a
+  # self-test. -i is always wanted so an interactive session still reads input.
+  local tty=(-i); [ -t 0 ] && [ -t 1 ] && tty=(-i -t)
+
+  docker run --rm "${tty[@]}" \
+    --hostname glovebox \
     --cap-drop ALL \
     --security-opt no-new-privileges \
     --pids-limit 512 \
     --memory 4g \
-    -e "WS_MODE=$mode" \
-    -e "WS_SSH_USER=${WS_SSH_USER:-root}" \
-    "${envs[@]}" \
+    -e "GB_MODE=$mode" \
+    -e "GB_SSH_USER=${GB_SSH_USER:-root}" \
+    ${envs[@]+"${envs[@]}"} \
     -v "$bundle:/bundle:ro" \
-    ${WS_DOCKER_ARGS:-} \
+    ${GB_DOCKER_ARGS:-} \
     "$IMAGE" "$@"
 }
 
 # resolve_bundle — first non-flag argument, or the current directory.
-# Defaulting to CWD means `cd ~/some-assessment && ws shell` just works,
+# Defaulting to CWD means `cd ~/some-assessment && gb shell` just works,
 # which is how you will actually use this.
 resolve_bundle() {
   local b="${1:-$PWD}"
@@ -91,15 +102,15 @@ resolve_bundle() {
 
 usage() {
   cat <<'USAGE'
-  ws — driver for the workstation container.
+  gb — driver for the glovebox container.
 
-    ./ws build [--no-cache]               build the image
-    ./ws shell [bundle-dir] [--rw|--ro]   interactive shell   (default: probe)
-    ./ws agent [--fix] "<question>"       one-shot agent run  (default: probe)
-    ./ws agent                            interactive Claude in the container
-    ./ws scope [sa-name] [ns]             mint a read-only kubeconfig via RBAC
-    ./ws doctor                           check the host is ready
-    ./ws nuke                             remove the image
+    ./gb build [--no-cache]               build the image
+    ./gb shell [bundle-dir] [--rw|--ro]   interactive shell   (default: probe)
+    ./gb agent [--fix] "<question>"       one-shot agent run  (default: probe)
+    ./gb agent                            interactive Claude in the container
+    ./gb scope [sa-name] [ns]             mint a read-only kubeconfig via RBAC
+    ./gb doctor                           check the host is ready
+    ./gb nuke                             remove the image
 
   MODES   ro     reads only
           probe  + exec / port-forward — no API object is modified  (default)
@@ -107,7 +118,7 @@ usage() {
 
   A bundle is the directory the assessment sent you (kubeconfig, ssh key, task
   description). It is mounted READ-ONLY. Defaults to the current directory, so
-  `cd ~/some-assessment && ws shell` is the normal way to use this.
+  `cd ~/some-assessment && gb shell` is the normal way to use this.
 
   ANTHROPIC_API_KEY is read from your environment and passed at run time. It is
   never written to an image layer.
@@ -121,7 +132,7 @@ case "$cmd" in
   build)
     c_info "building $IMAGE (this pulls ~500MB of tooling the first time)"
     docker build "$@" -t "$IMAGE" "$HERE"
-    c_ok "built $IMAGE — try: ./ws shell ~/some-assessment"
+    c_ok "built $IMAGE — try: ./gb shell ~/some-assessment"
     ;;
 
   shell)
@@ -169,7 +180,7 @@ case "$cmd" in
       read -r reply
       case "$reply" in y|Y|yes) ;; *) die "aborted" ;; esac
     fi
-    docker_run "$bundle" "$mode" agent "${prompt[@]}"
+    docker_run "$bundle" "$mode" agent ${prompt[@]+"${prompt[@]}"}
     ;;
 
   # ----------------------------------------------------------------------------
@@ -188,7 +199,7 @@ case "$cmd" in
   # deliberately and by you, rather than anywhere near the agent.
   # ----------------------------------------------------------------------------
   scope)
-    name="${1:-ws-readonly}"
+    name="${1:-gb-readonly}"
     ns="${2:-default}"
     out="${PWD}/kubeconfig.readonly"
     command -v kubectl >/dev/null || die "kubectl not found on the host"
@@ -220,7 +231,7 @@ users:
 EOF
     chmod 600 "$out"
     c_ok "wrote $out (valid 8h, 'view' ClusterRole — the API server enforces this)"
-    echo "   use it:  cp $out <bundle>/kubeconfig && ./ws agent \"...\""
+    echo "   use it:  cp $out <bundle>/kubeconfig && ./gb agent \"...\""
     echo "   revoke:  kubectl delete sa -n $ns $name; kubectl delete clusterrolebinding $name-view"
     ;;
 
@@ -230,7 +241,12 @@ EOF
       printf '  %-10s %s\n' "$t" "$(command -v $t || echo 'not found')"
     done
     printf '  %-10s %s\n' "docker" "$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo 'daemon not reachable')"
-    printf '  %-10s %s\n' "image" "$(docker image inspect "$IMAGE" --format '{{.Id}} ({{.Size}} bytes)' 2>/dev/null || echo 'not built — run ./ws build')"
+    # `docker images` rather than `image inspect`: under the containerd image
+    # store, inspect's .Size reports only part of the total and understates the
+    # image by roughly 4x, which is exactly the wrong direction to be wrong in
+    # when someone is deciding whether they have the disk for it.
+    printf '  %-10s %s\n' "image" "$(docker images "$IMAGE" --format '{{.Size}} (built {{.CreatedSince}})' 2>/dev/null | head -1 || true)"
+    docker image inspect "$IMAGE" >/dev/null 2>&1 || printf '  %-10s %s\n' "image" "not built — run ./gb build"
     printf '  %-10s %s\n' "api key" "$([ -n "${ANTHROPIC_API_KEY:-}" ] && echo 'set' || echo 'NOT SET — agent mode unavailable')"
     printf '  %-10s %s\n' "arch" "$(uname -m)"
     ;;
@@ -241,5 +257,5 @@ EOF
     ;;
 
   help|-h|--help) usage ;;
-  *) die "unknown command '$cmd' — try ./ws help" ;;
+  *) die "unknown command '$cmd' — try ./gb help" ;;
 esac

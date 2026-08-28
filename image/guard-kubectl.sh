@@ -4,27 +4,27 @@
 # guard-kubectl — verb allow-list in front of kubectl.
 #
 # Sits on PATH as /usr/local/bin/kubectl and forwards to the real binary at
-# /opt/ws/bin.real/kubectl only if the requested verb is permitted by WS_MODE.
+# /opt/glovebox/bin.real/kubectl only if the requested verb is permitted by GB_MODE.
 #
-#   WS_MODE=ro     reads only. The default, and what `ws agent` runs under.
-#   WS_MODE=probe  ro + exec / port-forward / debug / cp — no API object is
+#   GB_MODE=ro     reads only. The default, and what `gb agent` runs under.
+#   GB_MODE=probe  ro + exec / port-forward / debug / cp — no API object is
 #                  mutated, but you can reach into a pod to curl a service or
 #                  read a config file. This is where most real diagnosis lives.
-#   WS_MODE=rw     everything. `ws shell` (a human is driving) and
-#                  `ws agent --fix` (you asked for it, explicitly).
+#   GB_MODE=rw     everything. `gb shell` (a human is driving) and
+#                  `gb agent --fix` (you asked for it, explicitly).
 #
 # WHAT THIS IS NOT: a security boundary. Whatever can run this script can also
 # read $KUBECONFIG and speak to the API server over plain HTTPS without ever
 # touching kubectl. This stops accidents and honest mistakes — a fat-fingered
 # `delete`, a model that reached for `scale` when you asked it to diagnose. For
-# an actual boundary, scope the credential: `ws scope` mints a read-only
+# an actual boundary, scope the credential: `gb scope` mints a read-only
 # ServiceAccount kubeconfig that the API server itself enforces. See
 # docs/SECURITY.md, which says all of this at more length and with fewer commas.
 # ==============================================================================
 set -euo pipefail
 
-REAL=/opt/ws/bin.real/kubectl
-MODE="${WS_MODE:-ro}"
+REAL=/opt/glovebox/bin.real/kubectl
+MODE="${GB_MODE:-ro}"
 
 # ---- policy ------------------------------------------------------------------
 # Verbs that only read. `diff` is included deliberately: it does hit the API, but
@@ -65,7 +65,7 @@ if [ "$MODE" != rw ]; then
   for arg in "$@"; do
     case "$arg" in
       --as|--as=*|--as-group|--as-group=*)
-        echo "workstation: refusing --as/--as-group in WS_MODE=$MODE (impersonation)" >&2
+        echo "glovebox: refusing --as/--as-group in GB_MODE=$MODE (impersonation)" >&2
         exit 77 ;;
     esac
   done
@@ -112,22 +112,22 @@ fi
 # Every invocation is appended to the transcript when one is configured, allowed
 # or not. In an assessment you hand this in; in an interview you scroll it. A
 # refusal is at least as interesting as a success, so both are logged.
-if [ -n "${WS_AUDIT_LOG:-}" ]; then
+if [ -n "${GB_AUDIT_LOG:-}" ]; then
   printf '%s  [%s] %s kubectl %s\n' \
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$MODE" \
-    "$([ "$allowed" = 1 ] && echo RUN || echo DENY)" "$*" >> "$WS_AUDIT_LOG" 2>/dev/null || true
+    "$([ "$allowed" = 1 ] && echo RUN || echo DENY)" "$*" >> "$GB_AUDIT_LOG" 2>/dev/null || true
 fi
 
 if [ "$allowed" = 0 ]; then
   cat >&2 <<MSG
-workstation: refusing 'kubectl $verb' — WS_MODE=$MODE is read-only.
+glovebox: refusing 'kubectl $verb' — GB_MODE=$MODE is read-only.
 
   This cluster probably belongs to someone else. If you meant it:
-    ws shell --rw ...        (human at the keyboard)
-    ws agent --fix "..."     (agent may propose and apply changes)
+    gb shell --rw ...        (human at the keyboard)
+    gb agent --fix "..."     (agent may propose and apply changes)
 
   Or, inside this shell, for one command:
-    WS_MODE=rw kubectl $verb ...
+    GB_MODE=rw kubectl $verb ...
 MSG
   exit 77
 fi

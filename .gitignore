@@ -9,7 +9,8 @@ credentials
 .aws/
 .env
 snapshot-*/
-ws-audit-*.log
-.ws_history
+gb-audit-*.log
+.gb_history
 
 .DS_Store
+.gb_rc

@@ -12,17 +12,20 @@ gh_latest() {
   curl -fsSL "https://api.github.com/repos/$1/releases/latest" | grep -m1 '"tag_name"' | cut -d'"' -f4
 }
 
-declare -A PINS=(
-  [HELM_VERSION]=helm/helm
-  [K9S_VERSION]=derailed/k9s
-  [STERN_VERSION]=stern/stern
-  [YQ_VERSION]=mikefarah/yq
-  [KREW_VERSION]=kubernetes-sigs/krew
-  [EKSCTL_VERSION]=eksctl-io/eksctl
-)
+# A plain list of "ARG=owner/repo" rather than an associative array: this
+# script runs on the host, and macOS ships bash 3.2, which has no `declare -A`.
+PINS="
+HELM_VERSION=helm/helm
+K9S_VERSION=derailed/k9s
+STERN_VERSION=stern/stern
+YQ_VERSION=mikefarah/yq
+KREW_VERSION=kubernetes-sigs/krew
+EKSCTL_VERSION=eksctl-io/eksctl
+"
 
-for arg in "${!PINS[@]}"; do
-  v="$(gh_latest "${PINS[$arg]}")"
+for entry in $PINS; do
+  arg="${entry%%=*}"; repo="${entry##*=}"
+  v="$(gh_latest "$repo")"
   echo "  $arg=$v"
   sed -i.bak "s|^ARG ${arg}=.*|ARG ${arg}=${v}|" Dockerfile
 done
@@ -37,4 +40,4 @@ sed -i.bak "s|^ARG KUSTOMIZE_VERSION=.*|ARG KUSTOMIZE_VERSION=${kz}|" Dockerfile
 
 rm -f Dockerfile.bak
 echo
-echo "Dockerfile pinned. Rebuild with ./ws build --no-cache and commit the result."
+echo "Dockerfile pinned. Rebuild with ./gb build --no-cache and commit the result."

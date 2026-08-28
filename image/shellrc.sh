@@ -30,7 +30,7 @@ fi
 export HISTSIZE=100000 HISTFILESIZE=100000
 export HISTTIMEFORMAT='%F %T  '
 export HISTCONTROL=ignoredups
-export HISTFILE=/work/.ws_history
+export HISTFILE=/work/.gb_history
 if [ -n "${BASH_VERSION:-}" ]; then
   shopt -s histappend cmdhist checkwinsize 2>/dev/null || true
 fi
@@ -40,7 +40,7 @@ fi
 # rw case is deliberately alarming: red background, the word RW spelled out.
 # You should not be able to run a destructive command without having seen it.
 _ws_ps1() {
-  local mode="${WS_MODE:-ro}" seg ctx ns
+  local mode="${GB_MODE:-ro}" seg ctx ns
   case "$mode" in
     rw)    seg='\[\e[41;1;37m\] RW \[\e[0m\]' ;;
     probe) seg='\[\e[43;30m\] probe \[\e[0m\]' ;;
@@ -79,10 +79,10 @@ alias bat='batcat'      # Debian renames the binary to avoid a name clash
 alias vi=vim
 
 # ---- toolkit -----------------------------------------------------------------
-for f in /opt/ws/toolkit/*.sh; do [ -r "$f" ] && . "$f"; done
+for f in /opt/glovebox/toolkit/*.sh; do [ -r "$f" ] && . "$f"; done
 
 # ---- agent shortcut ----------------------------------------------------------
-# ws-diagnose "<question>" — one-shot agent run, read-only, from inside the box.
-ws-diagnose() { /opt/ws/claude/run-agent.sh "$@"; }
+# gb-diagnose "<question>" — one-shot agent run, read-only, from inside the box.
+gb-diagnose() { /opt/glovebox/claude/run-agent.sh "$@"; }
 
 export PATH="$HOME/.local/bin:$HOME/.krew/bin:$PATH"

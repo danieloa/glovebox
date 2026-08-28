@@ -4,7 +4,7 @@
 docs
 README.md
 hack
-ws
+gb
 kubeconfig*
 id_rsa*
 *.pem

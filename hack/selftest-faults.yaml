@@ -10,7 +10,7 @@
 # Faults 4 and 5 are the interesting pair: both produce an unreachable Service,
 # and `kubectl get svc` cannot tell them apart. kt-net separates them.
 #
-#   kind create cluster --name ws-selftest
+#   kind create cluster --name gb-selftest
 #   kubectl apply -f hack/selftest-faults.yaml
 apiVersion: v1
 kind: Namespace

@@ -29,7 +29,7 @@
       "Bash(helm upgrade:*)",
       "Bash(helm uninstall:*)",
       "Bash(helm rollback:*)",
-      "Bash(/opt/ws/bin.real/:*)",
+      "Bash(/opt/glovebox/bin.real/:*)",
       "Bash(curl:*)",
       "Bash(wget:*)",
       "Read(//work/id_rsa)",

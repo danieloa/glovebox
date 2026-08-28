@@ -45,7 +45,7 @@ believe to be malware.
 
 `/usr/local/bin/kubectl` and `/usr/local/bin/aws` are wrappers
 (`image/guard-*.sh`) that scan the argument vector and refuse mutating verbs
-unless `WS_MODE=rw`. They are owned by root and mode 0755: the runtime user can
+unless `GB_MODE=rw`. They are owned by root and mode 0755: the runtime user can
 execute them and cannot edit them.
 
 The argument scan walks the whole argv rather than reading `$1`, because
@@ -57,7 +57,7 @@ verb, since impersonation defeats the point of running under a scoped identity.
 not.
 
 This addresses **(1)** and **(2)** well. It is a real control, and it is the
-reason `ws agent` is safe to point at a cluster you care about.
+reason `gb agent` is safe to point at a cluster you care about.
 
 **It is not a capability boundary.** Anything that can run `kubectl` can also
 read `$KUBECONFIG` and issue the same request to the API server over plain
@@ -74,7 +74,7 @@ is why:
 ## The real boundary is the credential
 
 ```bash
-./ws scope [sa-name] [namespace]
+./gb scope [sa-name] [namespace]
 ```
 
 This creates a ServiceAccount bound to Kubernetes' built-in `view` ClusterRole,
@@ -99,7 +99,7 @@ The AWS equivalent is the same idea and is easier: assume a role with
 
 ## Order of preference
 
-1. **A scoped credential** (`ws scope`, or a read-only IAM role). Enforced
+1. **A scoped credential** (`gb scope`, or a read-only IAM role). Enforced
    server-side. Use this whenever you have the rights to create one.
 2. **The guard shims + the container.** Stops every accident, including the
    agent's. This is the default and it is usually enough.
@@ -113,8 +113,8 @@ The AWS equivalent is the same idea and is easier: assume a role with
 - It does not filter what the agent sends to the Anthropic API. Cluster output —
   pod names, namespaces, log lines, and anything an application logged — goes
   into the context window. If the assessment involves data you are not permitted
-  to send to a third party, do not use `ws agent`; `ws shell` sends nothing
+  to send to a third party, do not use `gb agent`; `gb shell` sends nothing
   anywhere.
 - It does not scan the bundle for anything.
-- It does not stop you typing `WS_MODE=rw` yourself. It is a seatbelt, not a
+- It does not stop you typing `GB_MODE=rw` yourself. It is a seatbelt, not a
   lock.

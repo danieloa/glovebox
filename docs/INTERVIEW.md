@@ -23,7 +23,7 @@ are asking.
 
 ## Have the manual path genuinely ready
 
-If they say no, `ws shell --ro` is still a much better shell than a bare
+If they say no, `gb shell --ro` is still a much better shell than a bare
 terminal, and every `kt-*` verb is a bundle of commands you could type by hand.
 Using a toolkit you wrote is not the thing anyone means by AI assistance — it is
 what a working SRE's shell looks like — but do not argue the point. If they want
@@ -43,11 +43,11 @@ production**:
   whole argv, splitting `config view` from `config set-credentials` and
   `rollout status` from `rollout restart`. Three modes, and `probe` — read plus
   `exec`, no API writes — because that is where real diagnosis actually lives.
-- **`ws scope`.** The part that says: the shims stop mistakes, they are not a
+- **`gb scope`.** The part that says: the shims stop mistakes, they are not a
   boundary, because anything holding the kubeconfig can talk to the API server
   directly. The real control is a ServiceAccount bound to `view`. Knowing which
   of your own controls is load-bearing is the senior signal.
-- **The transcript.** Every command, allowed or refused, in `/work/ws-audit-*`.
+- **The transcript.** Every command, allowed or refused, in `/work/gb-audit-*`.
 - **The skills.** `claude/skills/k8s-triage/SKILL.md` is a written diagnostic
   methodology. It is your reasoning, legible, reviewable, and version
   controlled — which is a better artifact than any answer the model produces.
@@ -68,9 +68,9 @@ seen, do not make it.
 
 | Time | |
 |---|---|
-| 0–2 min | Ask. Then `ws shell`, `kt-env`, `kt-triage`. Say what you see out loud. |
+| 0–2 min | Ask. Then `gb shell`, `kt-env`, `kt-triage`. Say what you see out loud. |
 | 2–5 min | `kt-snapshot` — freeze the evidence before touching anything. |
-| 5–8 min | If allowed, `ws agent "..."` in one window while you read the snapshot in another. Parallel, not sequential. |
+| 5–8 min | If allowed, `gb agent "..."` in one window while you read the snapshot in another. Parallel, not sequential. |
 | 8–25 min | Work the faults bottom-up. Verify every agent claim against the snapshot. `kt-diff` before any change. |
 | 25–35 min | Apply fixes one at a time. Verify against the original symptom, not the thing you changed. |
 | 35–40 min | The write-up. `incident-report` skill, or by hand — same structure either way. |
@@ -83,7 +83,7 @@ seen, do not make it.
   co-working spaces both count as one IP.
 - **Build the image the night before.** Not while someone is watching a screen
   share. It is 2GB.
-- **Check `ws doctor`** before the call.
+- **Check `gb doctor`** before the call.
 - **Pin `KUBECTL_VERSION`** to their cluster's server minor if they tell you.
   Two minors of skew silently drops fields from `get -o yaml`, which is a
   miserable thing to debug while already debugging something else.
