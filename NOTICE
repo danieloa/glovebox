@@ -1,0 +1,14 @@
+workstation
+Copyright 2026 Daniel Ortega Aparicio
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+This product bundles no third-party source code. The container image built
+from this repository downloads and installs third-party binaries at build
+time (kubectl, helm, k9s, stern, kustomize, krew, kubectx/kubens, yq, eksctl,
+the AWS CLI, and Claude Code), each of which remains under its own licence.
+See image/install-tools.sh for the full list and the upstream sources.

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 # guard-aws — operation allow-list in front of the AWS CLI v2.
 #

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 # workstation — a disposable, agent-capable SRE troubleshooting container.
 #

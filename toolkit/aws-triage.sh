@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 # aws-triage.sh — AWS-side verbs, aimed at the layer under an EKS cluster.
 #

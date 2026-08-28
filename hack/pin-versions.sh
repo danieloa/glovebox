@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # Freeze the Dockerfile's "latest" ARGs to the current upstream releases.
 #
 # Run this before an assessment. Two reasons: a build that resolves "latest" can

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 # k8s-triage.sh — layered triage verbs for an unfamiliar Kubernetes cluster.
 #

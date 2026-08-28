@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 # entrypoint.sh — prepare /work from the read-only bundle, then hand off.
 #

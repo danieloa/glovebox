@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 # run-agent.sh — hand the cluster to Claude, under a mode.
 #

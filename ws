@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 # ws — the host-side driver for the workstation container.
 #
