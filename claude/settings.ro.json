@@ -1,0 +1,39 @@
+{
+  "$comment": "Read-only agent profile. Real enforcement is the kubectl/aws guard shim plus (ideally) a scoped credential; these rules are the second layer, so that a refusal happens before a command is even attempted rather than as an exit-77 the model then has to interpret.",
+  "permissions": {
+    "deny": [
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl create:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl edit:*)",
+      "Bash(kubectl patch:*)",
+      "Bash(kubectl replace:*)",
+      "Bash(kubectl scale:*)",
+      "Bash(kubectl annotate:*)",
+      "Bash(kubectl label:*)",
+      "Bash(kubectl set:*)",
+      "Bash(kubectl drain:*)",
+      "Bash(kubectl cordon:*)",
+      "Bash(kubectl uncordon:*)",
+      "Bash(kubectl taint:*)",
+      "Bash(kubectl rollout restart:*)",
+      "Bash(kubectl rollout undo:*)",
+      "Bash(kubectl run:*)",
+      "Bash(kubectl exec:*)",
+      "Bash(kubectl cp:*)",
+      "Bash(kubectl port-forward:*)",
+      "Bash(kubectl proxy:*)",
+      "Bash(kubectl attach:*)",
+      "Bash(kubectl debug:*)",
+      "Bash(helm install:*)",
+      "Bash(helm upgrade:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(helm rollback:*)",
+      "Bash(/opt/ws/bin.real/:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Read(//work/id_rsa)",
+      "Read(//work/credentials)"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+# Build context hygiene: nothing sensitive should be reachable by a COPY, even
+# by accident. Only image/, toolkit/, claude/ are actually copied.
+.git
+docs
+README.md
+hack
+ws
+kubeconfig*
+id_rsa*
+*.pem
+credentials
+.env
+snapshot-*
+*.log

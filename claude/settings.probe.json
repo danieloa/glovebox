@@ -1,0 +1,29 @@
+{
+  "$comment": "Probe profile: adds exec / port-forward / debug so the agent can test connectivity from inside the cluster. Still cannot modify an API object. This is the default for `ws agent`, because most real diagnosis needs to curl a service from a pod.",
+  "permissions": {
+    "deny": [
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl create:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl edit:*)",
+      "Bash(kubectl patch:*)",
+      "Bash(kubectl replace:*)",
+      "Bash(kubectl scale:*)",
+      "Bash(kubectl annotate:*)",
+      "Bash(kubectl label:*)",
+      "Bash(kubectl set:*)",
+      "Bash(kubectl drain:*)",
+      "Bash(kubectl cordon:*)",
+      "Bash(kubectl uncordon:*)",
+      "Bash(kubectl taint:*)",
+      "Bash(kubectl rollout restart:*)",
+      "Bash(kubectl rollout undo:*)",
+      "Bash(helm install:*)",
+      "Bash(helm upgrade:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(/opt/ws/bin.real/:*)",
+      "Read(//work/id_rsa)",
+      "Read(//work/credentials)"
+    ]
+  }
+}

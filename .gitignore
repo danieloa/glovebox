@@ -1,0 +1,15 @@
+# Never commit an assessment bundle. This is the whole point.
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+id_rsa
+id_rsa.*
+*.pem
+credentials
+.aws/
+.env
+snapshot-*/
+ws-audit-*.log
+.ws_history
+
+.DS_Store

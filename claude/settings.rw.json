@@ -1,0 +1,19 @@
+{
+  "$comment": "Write-enabled profile — only reached via `ws agent --fix`, which prints a confirmation first. The deny list keeps the irreversible operations off the table even here: node lifecycle and namespace deletion are not things an agent should ever do unattended, and nothing in kube-system should be edited by an agent at all.",
+  "permissions": {
+    "deny": [
+      "Bash(kubectl delete namespace:*)",
+      "Bash(kubectl delete ns:*)",
+      "Bash(kubectl delete pv:*)",
+      "Bash(kubectl delete node:*)",
+      "Bash(kubectl delete crd:*)",
+      "Bash(kubectl drain:*)",
+      "Bash(kubectl taint:*)",
+      "Bash(kubectl -n kube-system delete:*)",
+      "Bash(kubectl delete -n kube-system:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(/opt/ws/bin.real/:*)",
+      "Read(//work/id_rsa)"
+    ]
+  }
+}
