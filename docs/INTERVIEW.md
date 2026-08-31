@@ -90,6 +90,42 @@ seen, do not make it.
 - **Test with `hack/selftest-faults.yaml`** on a local kind cluster so the first
   time you run `kt-triage` is not in front of an audience.
 
+## Rehearsing the exercise itself
+
+The fixture proves the toolkit works. It does not prepare you, because you wrote
+it and you know all five answers.
+
+`gb range` is for the other half. One unknown fault at a time, graded, with the
+clock running:
+
+```bash
+./gb range exam 4      # four faults, no symptoms given, timed
+./gb range shell       # then work it exactly as you would on the day
+./gb range check
+```
+
+What is worth practising there, in rough order of how often it decides the
+outcome:
+
+- **`exam`, not `up`.** A single fault at a time teaches the mechanism; several
+  at once teaches triage order under time pressure, which is the thing actually
+  being assessed. `kt-triage` first, say what you see out loud, then pick the
+  order deliberately and say why.
+- **The compound scenarios (`g1`–`g6`).** Every one of them punishes declaring
+  victory early: the pod leaves `Pending` and starts crash-looping, the Service
+  gets endpoints and still refuses connections. Re-running triage after each fix
+  is a habit you either have or do not, and it is very visible to whoever is
+  watching.
+- **`p16` and `p15` on a clock.** A dead API server or a stopped kubelet is
+  where people freeze, because every command they know stops working. Having
+  done it once, calmly, is worth more than knowing the commands.
+- **`p17`.** The wrong-namespace one. It is the least interesting failure in the
+  set and the most common way to lose ten minutes.
+
+Then read the `hints.md` for anything you had to look up — level 3 is the fix,
+but the reasoning is in levels 1 and 2, and that is the part you have to be able
+to say out loud.
+
 ## If it breaks live
 
 Say so, plainly, and switch to plain `kubectl`. A tool failing is not

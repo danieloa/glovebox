@@ -248,13 +248,73 @@ GB_DOCKER_ARGS="--network kind" ./gb shell /tmp/gb-bundle
 kind delete cluster --name gb-selftest
 ```
 
+## The range — practising, not just testing
+
+That fixture proves the toolkit works. It is useless for practice: five faults
+at once, applied in one shot, with the answers written in the comments at the
+top of the file.
+
+`gb range` is the other thing. It plants **one** known fault in a throwaway
+cluster, shows you only the symptom, and grades your fix — CKA-shaped
+break/fix reps, and rehearsal for the kind of live exercise
+[docs/INTERVIEW.md](docs/INTERVIEW.md) is about.
+
+```bash
+./gb range list                    # 24 scenarios
+./gb range up p09-svc-targetport   # arm one (creates the cluster on first use)
+./gb range shell                   # a glovebox shell pointed at it
+#   kt-triage, kt-net, kt-why ... and fix it
+./gb range check                   # graded
+```
+
+```
+    ID                     TIER    CATEGORY      ~MIN  TITLE
+  ─────────────────────────────────────────────────────────────────────────────────
+    p06-readiness-probe    ns      Pods          4     Pod is Running but never Ready — 0/1
+    p11-coredns-down       cluster Networking    6     Nothing can resolve a hostname, cluster-wide
+    p16-static-pod         node    Control-plane 10    kubectl itself stopped working — connection refused
+    g3-dns-is-netpol       ns      Compound      8     GOTCHA: 'DNS is broken' — but CoreDNS is healthy
+```
+
+Twenty-four scenarios: the eighteen standard failures — crash loops, image
+pulls, taints, OOM kills, probes, selectors, target ports, NetworkPolicies,
+CoreDNS, PVCs, RBAC, stuck rollouts, a NotReady node, a broken `kube-apiserver`
+static-pod manifest — plus six **compound** ones, where you fix the obvious
+fault and a second appears behind it. Those are the hard ones, and the ones real
+exercises are made of.
+
+Three things it does that a folder of broken YAML does not:
+
+- **It hides the answer.** Symptom only, and a three-step hint ladder — a nudge,
+  then where to look, then the full fix — so reading the answer is a decision
+  rather than an accident.
+- **It grades outcomes, not edits.** The targetPort scenario passes when an HTTP
+  GET through the Service returns bytes, whether you patched the Service or
+  moved the app's listener. It also refuses fixes that only remove the symptom:
+  deleting a readiness probe turns the pods green and sends live traffic to pods
+  that are not serving, and `p06` fails that.
+- **It runs a clock.** `gb range exam 4` arms four faults at once with no
+  symptoms given, which is the actual exercise — triage order under time
+  pressure, not knowledge of any single failure mode.
+
+It never reads `~/.kube/config`. It creates and uses its own kind cluster, and
+refuses to touch anything else — five independent checks, no `--force`, because
+this is the one part of glovebox that breaks a cluster on purpose. The reasoning
+is in [range/README.md](range/README.md) and `range_guard()` in `range/lib.sh`.
+
+```bash
+./gb range hint p09-svc-targetport   # nudge; ... 2 and ... 3 go further
+./gb range exam 4                    # four at once, timed
+./gb range down --cluster            # give the laptop its 3 nodes back
+```
+
 ## Requirements
 
 - Docker (or anything that speaks the same CLI). Built and tested on
   `linux/amd64`; `linux/arm64` is handled throughout and every upstream asset
   resolves for it, but that build path has not been exercised end to end.
-- `kubectl` on the host only for `gb scope`; everything else runs in the
-  container.
+- `kubectl` on the host for `gb scope` and `gb range`, plus `kind` for the
+  range; everything else runs in the container.
 - `ANTHROPIC_API_KEY` only for `gb agent`. The toolkit works fully without one.
   The key is passed in at run time and never written to an image layer.
 
@@ -280,9 +340,15 @@ claude/
 docs/
   SECURITY.md            the threat model, stated honestly
   INTERVIEW.md           how to offer this in an assessment without it backfiring
+range/
+  range.sh               the practice range: list, up, check, hint, exam, down
+  lib.sh                 the contract scenarios are written against — and range_guard
+  kind-cluster.yaml      3 nodes, zone-labelled, because a third of the faults need them
+  scenarios/<id>/        meta.env, inject.sh, verify.sh, hints.md, teardown.sh
 hack/
   pin-versions.sh        freeze tool versions before you need them
   selftest-faults.yaml   five deliberate faults, for testing the toolkit
+  range-selftest.sh      proves each scenario faults, grades, and tears down
   make-screenshots.sh    regenerate the README images from a live cluster
   ansi2svg.py            ANSI terminal output -> SVG
 ```
