@@ -8,6 +8,7 @@
 #   ./gb agent [--fix] "<question>"      one-shot agent run (default: probe)
 #   ./gb agent                           interactive Claude inside the container
 #   ./gb scope <sa-name>                 mint a read-only kubeconfig (see below)
+#   ./gb range <verb>                    break a throwaway cluster, on purpose
 #   ./gb doctor                          check the host is ready
 #   ./gb nuke                            remove the image and its volumes
 #
@@ -109,6 +110,7 @@ usage() {
     ./gb agent [--fix] "<question>"       one-shot agent run  (default: probe)
     ./gb agent                            interactive Claude in the container
     ./gb scope [sa-name] [ns]             mint a read-only kubeconfig via RBAC
+    ./gb range <verb>                     break/fix practice range (gb range help)
     ./gb doctor                           check the host is ready
     ./gb nuke                             remove the image
 
@@ -235,6 +237,25 @@ EOF
     echo "   revoke:  kubectl delete sa -n $ns $name; kubectl delete clusterrolebinding $name-view"
     ;;
 
+  # ----------------------------------------------------------------------------
+  # range — the only verb in here that breaks a cluster on purpose.
+  #
+  # Everything else in glovebox exists to diagnose somebody else's cluster
+  # without touching it. The range is the inverse: a throwaway kind cluster it
+  # creates itself, plants one known fault in, and grades you on fixing. Same
+  # toolkit, same agent, same guard shims — the difference is that here you
+  # already know the answer exists, which is what makes it practice.
+  #
+  # It is delegated rather than inlined because the safety story is the
+  # interesting part and deserves to be read in one piece: range_guard() in
+  # range/lib.sh, and the five checks that mean this can never point at a
+  # cluster kind did not create on this laptop.
+  # ----------------------------------------------------------------------------
+  range)
+    [ -x "$HERE/range/range.sh" ] || die "range/range.sh is missing or not executable"
+    exec "$HERE/range/range.sh" "$@"
+    ;;
+
   doctor)
     c_info "host checks"
     for t in docker kubectl git; do
@@ -249,6 +270,8 @@ EOF
     docker image inspect "$IMAGE" >/dev/null 2>&1 || printf '  %-10s %s\n' "image" "not built — run ./gb build"
     printf '  %-10s %s\n' "api key" "$([ -n "${ANTHROPIC_API_KEY:-}" ] && echo 'set' || echo 'NOT SET — agent mode unavailable')"
     printf '  %-10s %s\n' "arch" "$(uname -m)"
+    printf '  %-10s %s\n' "kind" "$(command -v kind >/dev/null && kind version 2>/dev/null || echo 'not found — gb range needs it')"
+    printf '  %-10s %s\n' "range" "$(kind get clusters 2>/dev/null | grep -qx "${GB_RANGE_CLUSTER:-gb-range}" && echo 'cluster is up' || echo 'not running')"
     ;;
 
   nuke)
