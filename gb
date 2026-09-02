@@ -20,7 +20,18 @@
 set -euo pipefail
 
 IMAGE="${GB_IMAGE:-glovebox}"
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the script's own location through any symlinks: gb is meant to be
+# reachable as ~/.local/bin/gb, and $HERE has to end up at the checkout that
+# holds range/ and image/, not at the directory the symlink lives in. Hand-rolled
+# rather than `readlink -f`, which BSD readlink on older macOS does not have.
+GB_SELF="${BASH_SOURCE[0]}"
+while [ -L "$GB_SELF" ]; do
+  gb_dir="$(cd -P "$(dirname "$GB_SELF")" && pwd)"
+  GB_SELF="$(readlink "$GB_SELF")"
+  # A relative link target is relative to the directory the link sits in.
+  case "$GB_SELF" in /*) ;; *) GB_SELF="$gb_dir/$GB_SELF" ;; esac
+done
+HERE="$(cd -P "$(dirname "$GB_SELF")" && pwd)"
 
 c_red()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
 c_ok()   { printf '\033[1;32m%s\033[0m\n' "$*"; }
