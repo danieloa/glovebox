@@ -110,6 +110,15 @@ banner() {
     warn "  kubeconfig: NOT FOUND in /bundle"
   fi
 
+  # The task description, if the bundle shipped one. Assessments hand you the
+  # brief as a file next to the kubeconfig and it is easy to miss in a directory
+  # listing, so it is named here rather than left to be discovered.
+  local t task=""
+  for t in BRIEF.md TASK.md task.md TASK.txt task.txt README.md; do
+    [ -f "$WORK/$t" ] && { task="/work/$t"; break; }
+  done
+  [ -n "$task" ] && printf '  task      : %s\n' "$task"
+
   [ -n "${ANTHROPIC_API_KEY:-}" ] \
     && printf '  agent     : available — try `gb-diagnose` or `claude`\n' \
     || printf '  agent     : no ANTHROPIC_API_KEY passed (tools still work)\n'

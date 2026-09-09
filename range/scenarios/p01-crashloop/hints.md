@@ -12,8 +12,8 @@ The container exits 1 because `DB_HOST` is unset. Nothing in the pod spec sets
 it. Add it to the deployment — the spec, not the live pod, or the next
 ReplicaSet rollout throws your fix away:
 
-    kubectl -n p01-crashloop set env deploy/checkout DB_HOST=postgres.internal
+    kubectl -n scenario-p01 set env deploy/checkout DB_HOST=postgres.internal
 
-Verify: `kubectl -n p01-crashloop get pod -w` — Ready 1/1 and RESTARTS stops
+Verify: `kubectl -n scenario-p01 get pod -w` — Ready 1/1 and RESTARTS stops
 climbing. A pod that is Running is not the same as a pod that has stopped
 crashing; watch it for a few seconds before you believe it.

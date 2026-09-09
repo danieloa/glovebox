@@ -11,7 +11,7 @@ a timeout means the registry is unreachable. This one is the first.
 ## 3
 The tag is a typo: `nginx:1.27-alpin`, missing the final `e`.
 
-    kubectl -n p02-imagepull set image deploy/catalog app=nginx:1.27-alpine
+    kubectl -n scenario-p02 set image deploy/catalog app=nginx:1.27-alpine
 
 Verify: the pod moves ImagePullBackOff -> ContainerCreating -> Running. Note
 that the old ReplicaSet stays at 0 — that is correct, not a leftover fault.

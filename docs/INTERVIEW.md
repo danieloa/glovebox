@@ -99,7 +99,7 @@ it and you know all five answers.
 clock running:
 
 ```bash
-./gb range exam 4      # four faults, no symptoms given, timed
+./gb range exam 4      # four faults at once, timed, one ticket each
 ./gb range shell       # then work it exactly as you would on the day
 ./gb range check
 ```
@@ -111,6 +111,12 @@ outcome:
   at once teaches triage order under time pressure, which is the thing actually
   being assessed. `kt-triage` first, say what you see out loud, then pick the
   order deliberately and say why.
+- **Read the tickets before you touch anything.** `exam` hands you one brief per
+  incident — the reported symptom and what has already been ruled out — and
+  nothing else; the namespaces are `scenario-p09`, not the name of the fault.
+  That is the shape of the real thing, and half the value is in noticing which
+  ticket contradicts what triage shows you. They stay readable at
+  `/work/BRIEF.md` inside the shell, and `gb range brief` re-prints them.
 - **The compound scenarios (`g1`–`g6`).** Every one of them punishes declaring
   victory early: the pod leaves `Pending` and starts crash-looping, the Service
   gets endpoints and still refuses connections. Re-running triage after each fix

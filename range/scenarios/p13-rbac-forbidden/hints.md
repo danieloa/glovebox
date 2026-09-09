@@ -8,20 +8,20 @@ Reproduce the decision without guessing, by asking the API server the same
 question the app is asking:
 
     kubectl auth can-i list pods \
-      --as=system:serviceaccount:p13-rbac-forbidden:watcher -n p13-rbac-forbidden
+      --as=system:serviceaccount:scenario-p13:watcher -n scenario-p13
 
 Then look at what does exist:
 
-    kubectl -n p13-rbac-forbidden get sa,role,rolebinding
+    kubectl -n scenario-p13 get sa,role,rolebinding
 
 ## 3
 The ServiceAccount `watcher` exists but nothing grants it anything. Create a
 Role with exactly the verbs the sidecar needs and bind it:
 
-    kubectl -n p13-rbac-forbidden create role pod-reader \
+    kubectl -n scenario-p13 create role pod-reader \
       --verb=get,list,watch --resource=pods
-    kubectl -n p13-rbac-forbidden create rolebinding watcher-pod-reader \
-      --role=pod-reader --serviceaccount=p13-rbac-forbidden:watcher
+    kubectl -n scenario-p13 create rolebinding watcher-pod-reader \
+      --role=pod-reader --serviceaccount=scenario-p13:watcher
 
 Verify: `kubectl auth can-i ...` returns `yes` and the sidecar's log flips to
 success within ten seconds — no restart needed; the token was always valid, it

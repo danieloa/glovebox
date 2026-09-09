@@ -11,11 +11,11 @@ it out.
 
 ## 3
     # layer 1 — the request is a unit error
-    kubectl -n g1-pending-then-crash set resources deploy/indexer \
+    kubectl -n scenario-g1 set resources deploy/indexer \
       --requests=memory=128Mi --limits=memory=256Mi
 
     # layer 2 — revealed once it runs: a ConfigMap that was never created
-    kubectl -n g1-pending-then-crash create configmap indexer-config \
+    kubectl -n scenario-g1 create configmap indexer-config \
       --from-literal=url=http://search.internal:9200
 
 The rule this scenario exists to build: **re-run your triage after every fix.**

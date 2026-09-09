@@ -5,14 +5,14 @@ requests after all of that. Read the error text on a failing create — it names
 the component.
 
 ## 2
-    kubectl -n g6-webhook-down create configmap probe --from-literal=a=b
+    kubectl -n scenario-g6 create configmap probe --from-literal=a=b
 
 `Internal error occurred: failed calling webhook "guard.gb-range.local": ...
 connection refused`. Admission runs after authn and authz and before persistence,
 which is why reads are untouched. List what is registered and find its backend:
 
     kubectl get validatingwebhookconfigurations,mutatingwebhookconfigurations
-    kubectl -n g6-webhook-down get svc,endpointslice policy-guard
+    kubectl -n scenario-g6 get svc,endpointslice policy-guard
 
 ## 3
 `gb-range-policy-guard` points at a Service with nothing behind it, and

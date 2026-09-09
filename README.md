@@ -255,8 +255,8 @@ at once, applied in one shot, with the answers written in the comments at the
 top of the file.
 
 `gb range` is the other thing. It plants **one** known fault in a throwaway
-cluster, shows you only the symptom, and grades your fix — CKA-shaped
-break/fix reps, and rehearsal for the kind of live exercise
+cluster, hands you a ticket describing the symptom, and grades your fix —
+CKA-shaped break/fix reps, and rehearsal for the kind of live exercise
 [docs/INTERVIEW.md](docs/INTERVIEW.md) is about.
 
 ```bash
@@ -268,13 +268,32 @@ break/fix reps, and rehearsal for the kind of live exercise
 ```
 
 ```
-    ID                     TIER    CATEGORY      ~MIN  TITLE
-  ─────────────────────────────────────────────────────────────────────────────────
-    p06-readiness-probe    ns      Pods          4     Pod is Running but never Ready — 0/1
-    p11-coredns-down       cluster Networking    6     Nothing can resolve a hostname, cluster-wide
-    p16-static-pod         node    Control-plane 10    kubectl itself stopped working — connection refused
-    g3-dns-is-netpol       ns      Compound      8     GOTCHA: 'DNS is broken' — but CoreDNS is healthy
+    ID                     NAMESPACE      TIER    CATEGORY      ~MIN  TITLE
+  ──────────────────────────────────────────────────────────────────────────────────────────────────
+    p06-readiness-probe    scenario-p06   ns      Pods          4     Pod is Running but never Ready — 0/1
+    p11-coredns-down       scenario-p11   cluster Networking    6     Nothing can resolve a hostname, cluster-wide
+    p16-static-pod         scenario-p16   node    Control-plane 10    kubectl itself stopped working — connection refused
+    g3-dns-is-netpol       scenario-g3    ns      Compound      8     GOTCHA: 'DNS is broken' — but CoreDNS is healthy
 ```
+
+That list is the library, so it names the fault. What you get while *working* a
+scenario is a ticket and a namespace:
+
+```
+  ┌─ TICKET  scenario-p18
+  │
+  │  The notifications endpoint returns nothing. There are no unhealthy
+  │  pods in the namespace — there are no pods at all. Nothing is
+  │  crash-looping, nothing is Pending, and the deployment reports no errors.
+  │
+  └─ namespace: scenario-p18   budget: 3 min
+```
+
+The namespace is `scenario-p18` and not `p18-scaled-to-zero` for the obvious
+reason: the id names the fault, and a namespace named after it answers the
+question before you have run anything. The ticket also lands at
+`/work/BRIEF.md` inside `gb range shell`, which is where a real assessment puts
+its task description.
 
 Twenty-four scenarios: the eighteen standard failures — crash loops, image
 pulls, taints, OOM kills, probes, selectors, target ports, NetworkPolicies,
@@ -285,17 +304,18 @@ exercises are made of.
 
 Three things it does that a folder of broken YAML does not:
 
-- **It hides the answer.** Symptom only, and a three-step hint ladder — a nudge,
-  then where to look, then the full fix — so reading the answer is a decision
-  rather than an accident.
+- **It hides the answer.** A ticket, a namespace that says nothing, and a
+  three-step hint ladder — a nudge, then where to look, then the full fix — so
+  reading the answer is a decision rather than an accident.
 - **It grades outcomes, not edits.** The targetPort scenario passes when an HTTP
   GET through the Service returns bytes, whether you patched the Service or
   moved the app's listener. It also refuses fixes that only remove the symptom:
   deleting a readiness probe turns the pods green and sends live traffic to pods
   that are not serving, and `p06` fails that.
-- **It runs a clock.** `gb range exam 4` arms four faults at once with no
-  symptoms given, which is the actual exercise — triage order under time
-  pressure, not knowledge of any single failure mode.
+- **It runs a clock.** `gb range exam 4` arms four faults at once and hands you
+  four tickets, which is the actual exercise — triage order under time
+  pressure, not knowledge of any single failure mode. It withholds the scenario
+  ids and titles until you have solved them.
 
 It never reads `~/.kube/config`. It creates and uses its own kind cluster, and
 refuses to touch anything else — five independent checks, no `--force`, because
@@ -303,8 +323,9 @@ this is the one part of glovebox that breaks a cluster on purpose. The reasoning
 is in [range/README.md](range/README.md) and `range_guard()` in `range/lib.sh`.
 
 ```bash
-./gb range hint p09-svc-targetport   # nudge; ... 2 and ... 3 go further
-./gb range exam 4                    # four at once, timed
+./gb range brief                     # re-read the ticket(s) you were handed
+./gb range hint scenario-p09         # nudge; ... 2 and ... 3 go further
+./gb range exam 4                    # four at once, timed, one ticket each
 ./gb range down --cluster            # give the laptop its 3 nodes back
 ```
 

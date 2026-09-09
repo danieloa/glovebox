@@ -11,7 +11,7 @@
 #
 # What a scenario script gets:
 #
-#   NS                  its own namespace (== the scenario id)
+#   NS                  its own namespace (scenario_ns of the scenario id)
 #   rk ...              kubectl, bound to the range kubeconfig and context
 #   node_exec N cmd     run a command inside a kind node container
 #   nodes_worker        list the worker node names
@@ -36,6 +36,24 @@ SCENARIOS="$RANGE_ROOT/scenarios"
 # them once and every later `range up` is instant even on hotel wifi.
 GB_IMG_BUSYBOX="${GB_IMG_BUSYBOX:-busybox:1.36}"
 GB_IMG_NGINX="${GB_IMG_NGINX:-nginx:1.27-alpine}"
+
+# ------------------------------------------------------------------------------
+# scenario_ns — the namespace a scenario runs in.
+#
+# Deliberately NOT the scenario id. The id names the fault — p18-scaled-to-zero,
+# g3-dns-is-netpol — and a namespace called that hands over the answer before
+# the first kubectl. Nobody in a real exercise is told "the incident is in
+# namespace scaled-to-zero". So the namespace is scenario-p18: enough to say
+# which ticket you are on, and nothing about what is wrong with it.
+#
+# The letter is kept because the two pools behave differently on teardown and
+# in the self-test, and because "scenario-18" and "scenario-g18" colliding on a
+# renumber is a worse bug than the small amount it gives away.
+#
+# Lowercase and hyphenated because a namespace is a DNS-1123 label; scenarioP18
+# is not a legal namespace name.
+# ------------------------------------------------------------------------------
+scenario_ns() { printf 'scenario-%s' "${1%%-*}"; }
 
 c_red()  { printf '\033[1;31m%s\033[0m\n' "$*"; }
 c_ok()   { printf '\033[1;32m%s\033[0m\n' "$*"; }
