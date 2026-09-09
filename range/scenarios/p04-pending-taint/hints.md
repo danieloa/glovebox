@@ -21,7 +21,7 @@ fixes, depending on whether the maintenance is real:
     kubectl taint node NODE gb-range/maintenance-
 
     # or the node is under maintenance and this pod must run anyway — tolerate it
-    kubectl -n p04-pending-taint patch deploy collector --type=strategic -p \
+    kubectl -n scenario-p04 patch deploy collector --type=strategic -p \
       '{"spec":{"template":{"spec":{"tolerations":[{"key":"gb-range/maintenance","operator":"Exists","effect":"NoSchedule"}]}}}}'
 
 What is NOT a fix is deleting the nodeSelector. That makes the symptom go away

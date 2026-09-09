@@ -4,7 +4,7 @@ killed. The exit code says which signal, and `describe` records the reason
 under Last State.
 
 ## 2
-    kubectl -n p05-oomkilled get pod POD \
+    kubectl -n scenario-p05 get pod POD \
       -o jsonpath='{.status.containerStatuses[0].lastState.terminated.reason}'
 
 `OOMKilled`, exit 137 (128 + SIGKILL). That is the kernel enforcing a cgroup
@@ -17,7 +17,7 @@ it actually uses.
 memory-backed emptyDir — which counts against the same cgroup. Raise the limit
 to something the workload can actually live in:
 
-    kubectl -n p05-oomkilled set resources deploy/resizer \
+    kubectl -n scenario-p05 set resources deploy/resizer \
       --requests=memory=320Mi --limits=memory=384Mi
 
 Verify: RESTARTS stops rising and Last State is no longer OOMKilled. Note that

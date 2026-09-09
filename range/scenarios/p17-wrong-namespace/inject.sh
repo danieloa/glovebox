@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 . "${GB_RANGE_LIB:?}"
-PROD=p17-prod
+PROD="${NS}-prod"   # production, the namespace the ticket is actually about
 for n in "$NS" "$PROD"; do
   rk create namespace "$n" --dry-run=client -o yaml | rk apply -f - >/dev/null
 done

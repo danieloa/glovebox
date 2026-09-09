@@ -20,6 +20,10 @@
 #     ./hack/range-selftest.sh ns         one tier
 #     ./hack/range-selftest.sh p09-svc-targetport g2-svc-two-layers
 #
+# The fixes below are written against the namespace a scenario runs in
+# (scenario-p09), not its id (p09-svc-targetport) — see scenario_ns in
+# range/lib.sh for why those are no longer the same string.
+#
 # Takes a while. Most of it is waiting for back-off states to be reached, which
 # is not something that can be hurried.
 set -uo pipefail
@@ -33,17 +37,17 @@ K() { kubectl --kubeconfig "$RANGE_KUBECONFIG" --context "kind-$RANGE_CLUSTER" "
 # ------------------------------------------------------------------------------
 # the reference fixes — one function per scenario, named fix_<id with - as _>
 # ------------------------------------------------------------------------------
-fix_p01_crashloop()          { K -n p01-crashloop set env deploy/checkout DB_HOST=postgres.internal; }
-fix_p02_imagepull()          { K -n p02-imagepull set image deploy/catalog app=nginx:1.27-alpine; }
-fix_p03_pending_resources()  { K -n p03-pending-resources set resources deploy/reports --requests=cpu=100m,memory=128Mi --limits=cpu=500m,memory=256Mi; }
+fix_p01_crashloop()          { K -n scenario-p01 set env deploy/checkout DB_HOST=postgres.internal; }
+fix_p02_imagepull()          { K -n scenario-p02 set image deploy/catalog app=nginx:1.27-alpine; }
+fix_p03_pending_resources()  { K -n scenario-p03 set resources deploy/reports --requests=cpu=100m,memory=128Mi --limits=cpu=500m,memory=256Mi; }
 fix_p04_pending_taint()      { K taint node "$(K get nodes -l gb-range/worker=1 -o name | sed 's|node/||')" gb-range/maintenance-; }
-fix_p05_oomkilled()          { K -n p05-oomkilled set resources deploy/resizer --requests=memory=320Mi --limits=memory=384Mi; }
-fix_p06_readiness_probe()    { K -n p06-readiness-probe patch deploy web --type=json \
+fix_p05_oomkilled()          { K -n scenario-p05 set resources deploy/resizer --requests=memory=320Mi --limits=memory=384Mi; }
+fix_p06_readiness_probe()    { K -n scenario-p06 patch deploy web --type=json \
                                  -p '[{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/port","value":80}]'; }
-fix_p07_missing_configmap()  { K -n p07-missing-configmap create configmap billing-config --from-literal=mode=production; }
-fix_p08_svc_selector()       { K -n p08-svc-selector patch svc payments -p '{"spec":{"selector":{"app":"payments"}}}'; }
-fix_p09_svc_targetport()     { K -n p09-svc-targetport patch svc api -p '{"spec":{"ports":[{"port":80,"targetPort":8080}]}}'; }
-fix_p10_networkpolicy()      { K -n p10-networkpolicy patch netpol backend-allow --type=json \
+fix_p07_missing_configmap()  { K -n scenario-p07 create configmap billing-config --from-literal=mode=production; }
+fix_p08_svc_selector()       { K -n scenario-p08 patch svc payments -p '{"spec":{"selector":{"app":"payments"}}}'; }
+fix_p09_svc_targetport()     { K -n scenario-p09 patch svc api -p '{"spec":{"ports":[{"port":80,"targetPort":8080}]}}'; }
+fix_p10_networkpolicy()      { K -n scenario-p10 patch netpol backend-allow --type=json \
                                  -p '[{"op":"replace","path":"/spec/ingress/0/from/0/podSelector/matchLabels","value":{"app":"frontend"}}]'; }
 fix_p11_coredns_down()       { K -n kube-system create configmap coredns --from-literal=Corefile='.:53 {
     errors
@@ -62,41 +66,41 @@ fix_p11_coredns_down()       { K -n kube-system create configmap coredns --from-
     loadbalance
 }
 ' --dry-run=client -o yaml | K apply -f - && K -n kube-system rollout restart deploy/coredns; }
-fix_p12_pvc_pending()        { K -n p12-pvc-pending delete pvc db-data --wait=false
-                               K -n p12-pvc-pending scale deploy/db --replicas=0
-                               K -n p12-pvc-pending delete pvc db-data --ignore-not-found
-                               K -n p12-pvc-pending apply -f - <<'Y'
+fix_p12_pvc_pending()        { K -n scenario-p12 delete pvc db-data --wait=false
+                               K -n scenario-p12 scale deploy/db --replicas=0
+                               K -n scenario-p12 delete pvc db-data --ignore-not-found
+                               K -n scenario-p12 apply -f - <<'Y'
 apiVersion: v1
 kind: PersistentVolumeClaim
-metadata: {name: db-data, namespace: p12-pvc-pending}
+metadata: {name: db-data, namespace: scenario-p12}
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: standard
   resources: {requests: {storage: 1Gi}}
 Y
-                               K -n p12-pvc-pending scale deploy/db --replicas=1; }
-fix_p13_rbac_forbidden()     { K -n p13-rbac-forbidden create role pod-reader --verb=get,list,watch --resource=pods
-                               K -n p13-rbac-forbidden create rolebinding watcher-pod-reader --role=pod-reader \
-                                 --serviceaccount=p13-rbac-forbidden:watcher; }
-fix_p14_rollout_stuck()      { K -n p14-rollout-stuck set image deploy/storefront app=nginx:1.27-alpine; }
+                               K -n scenario-p12 scale deploy/db --replicas=1; }
+fix_p13_rbac_forbidden()     { K -n scenario-p13 create role pod-reader --verb=get,list,watch --resource=pods
+                               K -n scenario-p13 create rolebinding watcher-pod-reader --role=pod-reader \
+                                 --serviceaccount=scenario-p13:watcher; }
+fix_p14_rollout_stuck()      { K -n scenario-p14 set image deploy/storefront app=nginx:1.27-alpine; }
 fix_p15_node_notready()      { node_exec "$(cat "$GB_HOME/p15.node")" "systemctl start kubelet"; }
 fix_p16_static_pod()         { node_exec "$RANGE_CLUSTER-control-plane" \
                                  "sed -i '/--profiling-mode=aggressive/d' /etc/kubernetes/manifests/kube-apiserver.yaml"; }
-fix_p17_wrong_namespace()    { K -n p17-wrong-namespace get deploy orders -o yaml \
-                                 | sed 's/namespace: p17-wrong-namespace/namespace: p17-prod/' \
-                                 | K -n p17-prod apply -f - ; }
-fix_p18_scaled_to_zero()     { K -n p18-scaled-to-zero scale deploy/notifications --replicas=3
-                               K -n p18-scaled-to-zero rollout resume deploy/notifications; }
-fix_g1_pending_then_crash()  { K -n g1-pending-then-crash set resources deploy/indexer --requests=memory=128Mi --limits=memory=256Mi
-                               K -n g1-pending-then-crash create configmap indexer-config --from-literal=url=http://search.internal:9200; }
-fix_g2_svc_two_layers()      { K -n g2-svc-two-layers patch svc inventory -p '{"spec":{"selector":{"app":"inventory"}}}'
-                               K -n g2-svc-two-layers patch svc inventory -p '{"spec":{"ports":[{"port":80,"targetPort":8080}]}}'; }
-fix_g3_dns_is_netpol()       { K -n g3-dns-is-netpol patch netpol default-deny-egress --type=json -p '[{
+fix_p17_wrong_namespace()    { K -n scenario-p17 get deploy orders -o yaml \
+                                 | sed 's/namespace: scenario-p17/namespace: scenario-p17-prod/' \
+                                 | K -n scenario-p17-prod apply -f - ; }
+fix_p18_scaled_to_zero()     { K -n scenario-p18 scale deploy/notifications --replicas=3
+                               K -n scenario-p18 rollout resume deploy/notifications; }
+fix_g1_pending_then_crash()  { K -n scenario-g1 set resources deploy/indexer --requests=memory=128Mi --limits=memory=256Mi
+                               K -n scenario-g1 create configmap indexer-config --from-literal=url=http://search.internal:9200; }
+fix_g2_svc_two_layers()      { K -n scenario-g2 patch svc inventory -p '{"spec":{"selector":{"app":"inventory"}}}'
+                               K -n scenario-g2 patch svc inventory -p '{"spec":{"ports":[{"port":80,"targetPort":8080}]}}'; }
+fix_g3_dns_is_netpol()       { K -n scenario-g3 patch netpol default-deny-egress --type=json -p '[{
                                  "op":"add","path":"/spec/egress/-","value":{
                                    "to":[{"namespaceSelector":{},"podSelector":{"matchLabels":{"k8s-app":"kube-dns"}}}],
                                    "ports":[{"protocol":"UDP","port":53},{"protocol":"TCP","port":53}]}}]'; }
-fix_g4_rollout_two_pulls()   { K -n g4-rollout-two-pulls set image deploy/checkout app=nginx:1.27-alpine; }
-fix_g5_pvc_topology()        { K -n g5-pvc-topology patch deploy analytics --type=json \
+fix_g4_rollout_two_pulls()   { K -n scenario-g4 set image deploy/checkout app=nginx:1.27-alpine; }
+fix_g5_pvc_topology()        { K -n scenario-g5 patch deploy analytics --type=json \
                                  -p '[{"op":"remove","path":"/spec/template/spec/nodeSelector"}]'; }
 fix_g6_webhook_down()        { K delete validatingwebhookconfiguration gb-range-policy-guard; }
 
