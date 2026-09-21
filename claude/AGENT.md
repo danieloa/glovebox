@@ -22,7 +22,9 @@ to make progress, stop and say so.
 Use the `kt-*` and `aw-*` verbs in `/opt/glovebox/toolkit/` before reaching for raw
 kubectl. They exist because each one bundles the several commands that actually
 answer a question, and because using them makes your reasoning legible to the
-person reading over your shoulder. `kt-help` lists them.
+person reading over your shoulder. `kt-help` lists them; `kt-probe-help` lists the
+in-pod probes (`kt-p2p`, `kt-svc`, `kt-podns`, ...) that need `probe` mode. Skip the
+interactive ones — `kt-tcpdump`, `kt-netshoot` — you have no terminal for them.
 
 Work bottom-up: nodes → workloads → network → ingress → TLS → HTTP. A broken
 node explains a broken pod; a broken pod explains a broken ingress. The reverse

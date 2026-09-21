@@ -128,6 +128,16 @@ NETWORK    kt-net          services, endpoints (ready vs not-ready), netpol, CNI
            kt-tls <host>   what certificate is actually served
            kt-http <url>   end-to-end request with phase timings
 
+IN-POD     kt-probe-help   lists the probes below; each runs from inside the pod
+           kt-p2p <a> <b>  pod -> pod IP, bypassing the Service and DNS
+           kt-svc <p> <s>  endpoints, DNS, then TCP to the Service
+           kt-podns <p>    resolv.conf + lookups as that pod sees them
+           kt-listen <p>   listening sockets (bound to 127.0.0.1?)
+           kt-conns <p>    established connections
+           kt-tcpdump <p>  packet capture in an ephemeral container
+           kt-coredns      CoreDNS pods, endpoints, errors, Corefile
+           kt-netpol <p>   which NetworkPolicies select this pod
+
 CAPACITY   kt-storage      PVCs that will not bind, and why
            kt-rbac [sa]    what you, or a ServiceAccount, can actually do
            kt-res          capacity vs requests, limits, OOMKills
@@ -146,7 +156,13 @@ single word gets you the whole evidence set instead of a half-remembered
 sequence under time pressure. Section banners state an expectation rather than
 a label — `NODES (want: all Ready)` — because under pressure you read output
 looking for a mismatch, and the header should tell you what you are matching
-against. None of them write to the cluster.
+against. None of the `kt-*` verbs write to the cluster.
+
+The in-pod probes (`toolkit/k8s-net.sh`) are the exception, and they say so:
+they need `probe` mode because they `exec` into pods, and when a pod has no
+`nc`/`ss`/`nslookup` they fall back to an ephemeral netshoot container — a
+change to the pod's spec that Kubernetes cannot undo until the pod is recreated.
+`kt-netshoot` and `kt-netshoot-node` create a pod and are refused outside `rw`.
 
 ## The agent
 
@@ -352,6 +368,7 @@ image/
   shellrc.sh             completion, history, prompt, aliases
 toolkit/
   k8s-triage.sh          the kt-* verbs
+  k8s-net.sh             the in-pod probes: kt-p2p, kt-svc, kt-podns, kt-listen, kt-tcpdump, ...
   aws-triage.sh          the aw-* verbs
 claude/
   AGENT.md               operating instructions injected into every agent run

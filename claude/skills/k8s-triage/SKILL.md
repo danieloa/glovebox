@@ -52,6 +52,14 @@ underneath you.
 | TLS | `kt-cert`, `kt-tls <host>` | browser warnings, handshake failures |
 | Application | `kt-logs`, `kt-http <url>` | 500s |
 
+When `kt-net` and `kt-dns` say the objects are fine but traffic still fails, test
+the path from inside a pod (`probe` mode; `kt-probe-help` lists them). Bisect with
+two commands: `kt-p2p <src> <dst>` reaches the pod IP directly, `kt-svc <src> <svc>`
+goes through the Service and DNS. Service fails but pod IP works -> Service or
+DNS (`kt-podns`, `kt-coredns`). Both fail -> CNI or NetworkPolicy (`kt-netpol`). If both
+succeed, `kt-listen` on the destination: an app bound to 127.0.0.1 is Ready and
+unreachable.
+
 A finding at a low layer retires the layers above it. A node that is
 `Ready=Unknown` fully explains its pods being unreachable; do not also file the
 pods as a separate fault.

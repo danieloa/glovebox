@@ -972,6 +972,7 @@ kt-help() {
     kt-cert [ns]              cert-manager chain in issuance order
     kt-tls <host> [port]      what certificate is actually served
     kt-http <url>             end-to-end request with phase timings
+    kt-probe-help                 in-pod probes (k8s-net.sh): kt-p2p, kt-svc, kt-podns, kt-listen, kt-tcpdump
 
   CAPACITY / ACCESS
     kt-storage                PVCs that will not bind, and why
